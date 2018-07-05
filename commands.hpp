@@ -105,7 +105,7 @@ void encode(const uint32_t rounds, const CnfGenVariablesMap& variables_map,
                         // some constant bits were excluded for encoding
                         // evaluate hash with the message again with all bits
                         merge_variable_value("M", *p_M_value, M_array, false, cnf.variables_size());
-                        ple::CnfVariableEvaluator(cnf).execute("M", p_M_value->data, "H", H_array);
+                        ple::CnfVariableEvaluator(cnf).execute("M", M_array, "H", H_array);
                         std::cout << "Computed \"H\": " << H_array << std::endl;
                     } else if (p_M_value->mode == vmValue &&
                                p_M_value->var_range_first == 0) {
