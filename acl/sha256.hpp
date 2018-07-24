@@ -1,6 +1,6 @@
 //
 //  Algebraic Cryptanalysis Library (ACL)
-//  https://cnfgen.sophisticatedways.net
+//  https://cgen.sophisticatedways.net
 //  Copyright © 2018 Volodymyr Skladanivskyy. All rights reserved.
 //  Published under terms of MIT license.
 //
@@ -9,7 +9,7 @@
 #define sha256_hpp
 
 #include "operators.hpp"
-#include "trace.hpp"
+#include "tracer.hpp"
 #include "sha.hpp"
 
 #define SHA256_WORD_SIZE 32
@@ -17,7 +17,7 @@
 #define SHA256_MESSAGE_BLOCK_SIZE 16
 #define SHA256_ROUNDS_NUMBER 64
 
-namespace acl {;
+namespace acl {
     
     using namespace ple;
 
@@ -26,6 +26,7 @@ namespace acl {;
     public:
         using Word = typename SHA<SHA256_WORD_SIZE, SHA256_MESSAGE_BLOCK_SIZE, BIT>::Word;
         
+        static const constexpr char* const NAME = "SHA-256";
         static const constexpr uint32_t HASH_SIZE = SHA256_HASH_SIZE;
         static const constexpr uint32_t ROUNDS_NUMBER = SHA256_ROUNDS_NUMBER;
         
@@ -75,13 +76,13 @@ namespace acl {;
         };
         
     public:
-        void execute(RefArray<Word> &M, RefArray<Word> &H, Tracer<BIT>& tracer,
-                     const uint32_t rounds = SHA1_ROUNDS_NUMBER) {
+        void execute(RefArray<Word> &M, RefArray<Word> &H, Tracer<SHA256_WORD_SIZE, BIT>& tracer,
+                     const uint32_t rounds = ROUNDS_NUMBER) {
             assert(M.size() == SHA256_MESSAGE_BLOCK_SIZE);
             assert(H.size() == SHA256_HASH_SIZE);
             assert(rounds > 0 && rounds <= SHA256_ROUNDS_NUMBER);
             
-            trace(tracer, "M", M);
+            tracer.trace("M", M);
             
             RefArray<Word> W(rounds);
             for (unsigned int i = 0; i < _min(SHA256_MESSAGE_BLOCK_SIZE, rounds); i++) {
@@ -93,7 +94,7 @@ namespace acl {;
                 W[i] = add(W_args);
             };
             
-            trace(tracer, "W", W);
+            tracer.trace("W", W);
             
             Ref<Word> a = H0[0];
             Ref<Word> b = H0[1];
@@ -118,11 +119,11 @@ namespace acl {;
                 b = a;
                 a = t1 + t2;
                 
-                trace(tracer, "A", a, i);
+                tracer.trace("A", a, i);
             };
             
             H = {a + H0[0], b + H0[1], c + H0[2], d + H0[3], e + H0[4], f + H0[5], g + H0[6], h + H0[7]};
-            trace(tracer, "H", H);
+            tracer.trace("H", H);
         };
     };
 };

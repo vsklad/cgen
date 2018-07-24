@@ -1,12 +1,14 @@
 //
 //  Propositional Logic Engine (PLE) Library
-//  https://cnfgen.sophisticatedways.net
+//  https://cgen.sophisticatedways.net
 //  Copyright © 2018 Volodymyr Skladanivskyy. All rights reserved.
 //  Published under terms of MIT license.
 //
 
 #ifndef referenceable_hpp
 #define referenceable_hpp
+
+#include <cstddef>
 
 namespace ple {
 
@@ -27,7 +29,6 @@ namespace ple {
 
     template <class T>
     class ReferenceableRef {
-        friend class ReferenceableRef<T>;
     private:
         T* value_;
     protected:
@@ -47,7 +48,7 @@ namespace ple {
         ReferenceableRef(const ReferenceableRef &value): ReferenceableRef(value.value_) {};
         ~ReferenceableRef() { this->set_value(nullptr); };
         
-        inline const operator T* const () const { return this->value_; };
+        inline operator T* const () const { return this->value_; };
         inline T* const operator -> () const { return this->value_; };
         inline T* const data() const { return this->value_; };
 

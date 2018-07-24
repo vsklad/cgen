@@ -1,6 +1,6 @@
 //
 //  Propositional Logic Engine (PLE) Library
-//  https://cnfgen.sophisticatedways.net
+//  https://cgen.sophisticatedways.net
 //  Copyright © 2018 Volodymyr Skladanivskyy. All rights reserved.
 //  Published under terms of MIT license.
 //
@@ -8,25 +8,25 @@
 #ifndef cnf_hpp
 #define cnf_hpp
 
-#include <map>
 #include <vector>
 #include "vector.hpp"
 #include "variables.hpp"
 #include "variablesarray.hpp"
+#include "formula.hpp"
 #include "cnfclauses.hpp"
 
 namespace ple {
-    typedef std::map<const std::string, VariablesArray> named_variables_t;
-    typedef std::map<const std::string, std::string> cnf_parameters_t;
-
     class CnfProcessor;
     
-    class Cnf {
+    class Cnf: public Formula {
     public:
         class CnfVariableGenerator: public VariableGenerator { friend class Cnf; };
         
         friend class CnfProcessor;
 
+        // ADD_NAIVE enforces encoding of simple binary addition with carry
+        static const bool constexpr ADD_NAIVE_DEFAULT = false;
+        
         // ADD_MAX_ARGS determines maximal number of arguments for an add expression
         // longer expressions are split into batches of the given lenth, last one can be shorter
         // ADD_MAX_ARGS is applied at bit level; it determines max number of variables
@@ -67,25 +67,12 @@ namespace ple {
         // new aggregated clauses are produced above this offset only
         vector<uint32_t>::vector_size_t baseline_size_;
         
-        // named variables can be defined with string labels
-        // it is expected a variable in most cases an array, i.e. a word of bits
-        // or perhaps even and array of words (concatenated arrays of bits)
-        // named variables are needed for assignment/evaluation
-        // certain or all bits may be constant, i.e. already encoded/optimized within CNF
-        named_variables_t named_variables_;
-        
         CnfVariableGenerator variable_generator_;
         
         // generation options
         uint32_t add_max_args_;
         uint32_t xor_max_args_;
-        
-        // parameters are sets of values
-        // it is expected that values are stored as comma separated list
-        // with items in the format <name>: <value>
-        // parameter name is a category name
-        // it is expected that the parameters are write-only
-        cnf_parameters_t parameters_;
+        bool add_naive_;
         
     private:
         inline static int compare_clauses_i(const uint32_t* lhs, const uint32_t* rhs) {
@@ -221,24 +208,25 @@ namespace ple {
         
         // reset internal structures and resize
         inline void initialize(const variables_size_t variables_size, const clauses_size_t clauses_size) {
+            Formula::initialize();
             variable_generator_.reset(variables_size);
             clauses_.reset(clauses_size << 2); // set initial buffer with 4 words per clause
             var_clauses_.reset(variables_size); // assume number of variables is correct
             var_clauses_.append(CLAUSES_END, variables_size); // CLAUSES_END means unassigned
             var_clauses_index_.reset(clauses_size << 2); // again, estimate for number of literals
             baseline_size_ = 0;
-            named_variables_.clear();
             add_max_args_ = ADD_MAX_ARGS_DEFAULT;
             xor_max_args_ = XOR_MAX_ARGS_DEFAULT;
+            add_naive_ = ADD_NAIVE_DEFAULT;
         };
 
         const uint32_t* const data() const { return clauses_.data_; };
         const uint32_t data_size() const { return clauses_.size_; };
         
-        const variables_size_t variables_size() const { return variable_generator_.next(); };
+        virtual const variables_size_t variables_size() const override { return variable_generator_.next(); };
         const uint32_t literals_size() const { return clauses_.size_ - clauses_size(); };
-        
-        const bool is_empty() const { return clauses_.size_ == 0; };
+
+        virtual const bool is_empty() const override { return clauses_.size_ == 0; };
         
         const clauses_size_t clauses_size() const {
             clauses_size_t result = 0;
@@ -255,10 +243,11 @@ namespace ple {
             return result;
         };
         
-        const named_variables_t& named_variables() const { return named_variables_; };
-        
         inline VariableGenerator& variable_generator() { return variable_generator_; };
 
+        inline bool get_add_naive() const { return add_naive_; };
+        inline void set_add_naive(const bool value) { add_naive_ = value; };
+        
         inline uint32_t get_add_max_args() const { return add_max_args_; };
         inline void set_add_max_args(const uint32_t value) {
             assert(value >= ADD_MAX_ARGS_MIN && value <= ADD_MAX_ARGS_MAX);
@@ -356,29 +345,6 @@ namespace ple {
             append_clause(values, n);
         };
         
-        inline literal_t new_variable_literal() {
-            return literal_t(variable_t(variable_generator_.new_variable()));
-        };
-        
-        // this does not check if the assignment of the variable changes other variables
-        // intended use is during CNF definition; for afterwards see assign_named_variable
-        inline void add_named_variable(const char* const name, const VariablesArray& value) {
-            // a copy of value is made here; overwrites any previous value
-            named_variables_.insert({name, value});
-        };
-        
-        // this does not check if the assignment of the variable changes other variables
-        // intended use is during CNF definition; for afterwards see assign_named_variable
-        inline void add_named_variable(const char* const name, const VariablesArray& value, const variableid_t index) {
-            auto it = named_variables_.find(name);
-            if (it == named_variables_.end()) {
-                add_named_variable(name, value);
-            } else {
-                it->second.expand_elements(index + 1);
-                it->second.assign_element(value, index);
-            };
-        };
-        
         inline static void print_clause(std::ostream& stream, const uint32_t* const p_clause, const char* final_token = nullptr) {
             uint16_t clauses_bitmap = *p_clause >> 16;
             const clause_size_t literals_size = (*p_clause & 0xFFFF);
@@ -408,16 +374,6 @@ namespace ple {
                 if (final_token != nullptr) {
                     stream << final_token;
                 };
-            };
-        };
-        
-        inline void print_variable_clauses(const variableid_t variable_id) const {
-            std::cout << "variable clauses for " << variable_id + 1 << ":" << std::endl;
-            uint32_t* p_index = var_clauses_.data_ + variable_id;
-            while (*p_index != CLAUSES_END) {
-                const uint32_t* const p_clause = clauses_.data_ + var_clauses_index_.data_[*p_index].offset;
-                print_clause(std::cout, p_clause, ", ");
-                p_index = &(var_clauses_index_.data_[*p_index].next_item);
             };
         };
         
@@ -455,38 +411,6 @@ namespace ple {
             };
             baseline_size_ = 0;
         };
-        
-        // Parameters
-        
-        const cnf_parameters_t& get_parameters() const { return parameters_; };
-        
-        void add_parameter(const std::string& key, const std::string& name,
-                           const std::string& value, const bool b_quote = true) {
-            std::string item = (b_quote) ?
-                std::string(name).append(": \"").append(value).append("\"") :
-                std::string(name).append(": ").append(value);
-            
-            auto it = parameters_.find(key);
-            if (it != parameters_.end()) {
-                if (it->second.size() > 0) {
-                    it->second.append(", ");
-                };
-                it->second.append(item);
-            } else {
-                parameters_.insert({key, item});
-            };
-        };
-        
-        void add_parameter(const std::string& key, const std::string& name, const uint32_t value) {
-            add_parameter(key, name, std::to_string(value), false);
-        };
-        
-        void clear_parameters(const std::string& key) {
-            auto it = parameters_.find(key);
-            if (it != parameters_.end()) {
-                parameters_.erase(it);
-            };
-        };
     };
     
     class CnfProcessor {
@@ -497,16 +421,18 @@ namespace ple {
         vector<uint32_t>& clauses_;
         vector<uint32_t>& var_clauses_;
         vector<clauses_index_item_t>& var_clauses_index_;
-        named_variables_t& named_variables_;
+        formula_named_variables_t& named_variables_;
         
         inline void set_variables_size(const variableid_t value) {
             cnf_.set_variables_size(value);
         };
         
     public:
-        CnfProcessor(Cnf& cnf): cnf_(cnf), clauses_(cnf.clauses_), var_clauses_(cnf.var_clauses_), var_clauses_index_(cnf.var_clauses_index_), named_variables_(cnf.named_variables_) {};
+        CnfProcessor(Cnf& cnf): cnf_(cnf), clauses_(cnf.clauses_),
+            var_clauses_(cnf.var_clauses_), var_clauses_index_(cnf.var_clauses_index_),
+            named_variables_(cnf_.get_named_variables_()) {};
         
-        virtual void execute() = 0;
+        virtual const bool execute() = 0;
     };
 };
 

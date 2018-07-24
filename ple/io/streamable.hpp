@@ -1,6 +1,6 @@
 //
 //  Propositional Logic Engine (PLE) Library
-//  https://cnfgen.sophisticatedways.net
+//  https://cgen.sophisticatedways.net
 //  Copyright © 2018 Volodymyr Skladanivskyy. All rights reserved.
 //  Published under terms of MIT license.
 //

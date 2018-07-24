@@ -1,6 +1,6 @@
 //
-//  CNFGen
-//  https://cnfgen.sophisticatedways.net
+//  CGen
+//  https://cgen.sophisticatedways.net
 //  Copyright © 2018 Volodymyr Skladanivskyy. All rights reserved.
 //  Published under terms of MIT license.
 //
@@ -12,32 +12,33 @@
 #include <vector>
 #include "variablesarray.hpp"
 
-#define APP_VERSION "1.0"
-#define APP_TITLE "CNFGen"
-#define APP_URL "https://cnfgen.sophisticatedways.net"
-#define APP_DESCRIPTION "CNFGen is a tool for encoding SHA-1 and SHA-256 hash functions into CNF in DIMACS format"
+#define APP_VERSION "1.1"
+#define APP_TITLE "CGen"
+#define APP_URL "https://cgen.sophisticatedways.net"
+#define APP_DESCRIPTION "CGen is a tool for encoding SHA-1 and SHA-256 hash functions into CNF/DIMACS and ANF/PolyBoRi formats"
 
 #define APP_USAGE_SHORT "\
 Usage: \n\
-    cnfgen encode (SHA1|SHA256) [-r <rounds>] [-v <name> <value>]... [<encoder options>] <output file name>\n\
-    cnfgen (assign | define) [-v <name> <value>]... <input file name> <output file name>\n\
-    cnfgen --help\n\
-    cnfgen --version\n\
+    cgen encode (SHA1|SHA256) [-f (ANF|CNF)] [-r <rounds>] [-v <name> <value>]... [<encoder options>] <output file name>\n\
+    cgen (assign | define) [-v <name> <value>]... <input file name> <output file name>\n\
+    cgen --help\n\
+    cgen --version\n\
 ";
 
 #define APP_USAGE_LONG "\
 Commands:\n\
     encode (SHA1|SHA256) - generate the encoding\n\
-    assign - read <input file name>, assign variables as specified and save it to <output file name>\n\
-    define - define one or more named variables\n\
+    assign - read DIMACS CNF from <input file name>, assign variables as specified and save it to <output file name>\n\
+    define - define one or more named variablesin the specified DIMACS CNF file\n\
 Options:\n\
+    -f (ANF|CNF) - encoding form, CNF if not specified \n\
     -v <name> <value> - specification of the named variable,\n\
         its mapping to binary variables and/or its constant values\n\
         refer for detailed specifications online\n\
     -r <value> - number of SHA1 rounds to encode\n\
     -h | --help\n\
     --version\n\
-Further documentation and usage examples available at https://cnfgen.sophisticatedways.net.\n\
+Further documentation and usage examples available at https://cgen.sophisticatedways.net.\n\
 ";
 
 #define ERROR_COMMAND_NONE "No command specified"
@@ -75,21 +76,24 @@ Further documentation and usage examples available at https://cnfgen.sophisticat
 #define ERROR_EXCEPT_VARIABLES_RANGE_OUT_OF_BOUNDS "\"except\" variables range is out of bounds"
 #define ERROR_RANDOM_NOT_ENOUGH_VARIABLES "Less variables than the requested number of random values to set"
 #define ERROR_FAILED_OPENING_OUTPUT_FILE "Failed to open the output file"
-#define WARNING_CNF_IS_EMPTY "The formula is SATISFIED, no clauses in DIMACS file"
+#define WARNING_FORMULA_IS_EMPTY "The formula is SATISFIED, no clauses in the output file"
+#define ERROR_UNKNOWN_FORMAT "Unknown output format"
+#define ERROR_ANF_ENCODE_ONLY "ANF output is only supported for \"encode\" command"
 
-enum CnfGenCommand {cmdNone, cmdEncode, cmdAssign, cmdDefine, cmdHelp, cmdVersion};
-enum CnfGenAlgorithm {algNone, algSHA1, algSHA256};
+enum CGenCommand {cmdNone, cmdEncode, cmdAssign, cmdDefine, cmdHelp, cmdVersion};
+enum CGenAlgorithm {algNone, algSHA1, algSHA256};
+enum CGenFormat {fmtCnfDimacs, fmtAnfPolybori};
 
-enum CnfGenVariableMode {vmValue, vmRandom, vmCompute, vmDefine};
+enum CGenVariableMode {vmValue, vmRandom, vmCompute, vmDefine};
 
 typedef struct {
-    CnfGenVariableMode mode;
+    CGenVariableMode mode;
     uint32_t var_range_first = 0;
     uint32_t var_range_last = 0;
     uint32_t random_count = 0;
     ple::VariablesArray data;
-} CnfGenVariableInfo;
+} CGenVariableInfo;
 
-typedef std::map<std::string, CnfGenVariableInfo> CnfGenVariablesMap;
+typedef std::map<std::string, CGenVariableInfo> CGenVariablesMap;
 
 #endif /* shared_hpp */

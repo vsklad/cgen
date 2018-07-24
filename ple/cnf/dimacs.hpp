@@ -1,6 +1,6 @@
 //
 //  Propositional Logic Engine (PLE) Library
-//  https://cnfgen.sophisticatedways.net
+//  https://cgen.sophisticatedways.net
 //  Copyright © 2018 Volodymyr Skladanivskyy. All rights reserved.
 //  Published under terms of MIT license.
 //
@@ -137,15 +137,15 @@ namespace ple {
         };
         
         virtual void write_parameters(const Cnf& value) {
-            const cnf_parameters_t parameters = value.get_parameters();
+            const formula_parameters_t parameters = value.get_parameters();
             for (auto it = parameters.begin(); it != parameters.end(); it++) {
                 stream() << "c var ." << it->first << " = {" << it->second << "}" << std::endl;
             };
         };
         
         void write_variables(const Cnf& value) {
-            const named_variables_t& nv = value.named_variables();
-            for (named_variables_t::const_iterator it = nv.begin(); it != nv.end(); ++it) {
+            const formula_named_variables_t& nv = value.get_named_variables();
+            for (formula_named_variables_t::const_iterator it = nv.begin(); it != nv.end(); ++it) {
                 stream() << "c var " << it->first << " = " << it->second << std::endl;
             };
         };

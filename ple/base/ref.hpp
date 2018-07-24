@@ -1,6 +1,6 @@
 //
 //  Propositional Logic Engine (PLE) Library
-//  https://cnfgen.sophisticatedways.net
+//  https://cgen.sophisticatedways.net
 //  Copyright © 2018 Volodymyr Skladanivskyy. All rights reserved.
 //  Published under terms of MIT license.
 //
@@ -18,7 +18,7 @@ namespace ple {
     template<class T> class Ref;
     
     template<class T>
-    class Allocator {
+    class RefTargetAllocator {
     public:
         virtual T* new_instance(Ref<T>* ref) {
             return ref->set_value(new T());
@@ -34,7 +34,7 @@ namespace ple {
     template<class T>
     class RefTarget: public virtual Referenceable {
     public:
-        using Allocator = Allocator<T>;
+        using Allocator = RefTargetAllocator<T>;
     };
     
     // may not contain any member variables, static only
@@ -42,7 +42,7 @@ namespace ple {
     template<class T>
     class Ref: public ReferenceableRef<T>  {
     private:
-        friend class Allocator<T>;
+        friend class RefTargetAllocator<T>;
         static typename T::Allocator allocator_;
         
     public:

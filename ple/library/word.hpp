@@ -1,6 +1,6 @@
 //
 //  Propositional Logic Engine (PLE) Library
-//  https://cnfgen.sophisticatedways.net
+//  https://cgen.sophisticatedways.net
 //  Copyright © 2018 Volodymyr Skladanivskyy. All rights reserved.
 //  Published under terms of MIT license.
 //
@@ -62,13 +62,18 @@ namespace ple {
             };
             return this;
         };
+
+        virtual Word* const assign(VariablesArray& value) {
+            assert(value.size() == WORD_SIZE);
+            return assign(value.data(), value.size());
+        };
             
         virtual Word* const assign(VariableGenerator& generator) override {
             RefArray<BIT>::operator=(generator);
             return this;
         };
         
-        virtual WordValue evaluate(const literalid_t* const value,
+        virtual const WordValue evaluate(const literalid_t* const value,
                                    const size_t value_size) const override {
             WordValue word_value = 0;
             for (int i = WORD_SIZE - 1; i >= 0; i--) {
@@ -79,7 +84,7 @@ namespace ple {
             return word_value;
         };
             
-        virtual const operator WordValue() const override {
+        virtual operator const WordValue() const override {
             WordValue value = 0;
             for (int i = WORD_SIZE - 1; i >= 0; i--) {
                 assert(this->data()[i] != nullptr);

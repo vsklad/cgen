@@ -1,6 +1,6 @@
 //
 //  Algebraic Cryptanalysis Library (ACL)
-//  https://cnfgen.sophisticatedways.net
+//  https://cgen.sophisticatedways.net
 //  Copyright © 2018 Volodymyr Skladanivskyy. All rights reserved.
 //  Published under terms of MIT license.
 //
@@ -9,7 +9,7 @@
 #define sha1_hpp
 
 #include "operators.hpp"
-#include "trace.hpp"
+#include "tracer.hpp"
 #include "sha.hpp"
 
 #define SHA1_WORD_SIZE 32
@@ -26,8 +26,9 @@ namespace acl {;
     public:
         using Word = typename SHA<SHA1_WORD_SIZE, SHA1_MESSAGE_BLOCK_SIZE, BIT>::Word;
         
+        static const constexpr char* const NAME = "SHA-1";
         static const constexpr uint32_t HASH_SIZE = SHA1_HASH_SIZE;
-        static const constexpr uint32_t ROUNDS_NUMBER = SHA1_ROUNDS_NUMBER;        
+        static const constexpr uint32_t ROUNDS_NUMBER = SHA1_ROUNDS_NUMBER;
         
     private:
         RefArray<Word> H0 = { 0x67452301, 0xEFCDAB89, 0x98BADCFE, 0x10325476, 0xC3D2E1F0 };
@@ -48,13 +49,13 @@ namespace acl {;
         };
         
     public:
-        void execute(RefArray<Word> &M, RefArray<Word> &H, Tracer<BIT>& tracer,
+        void execute(RefArray<Word> &M, RefArray<Word> &H, Tracer<SHA1_WORD_SIZE, BIT>& tracer,
                      const uint32_t rounds = SHA1_ROUNDS_NUMBER) {
             assert(M.size() == SHA1_MESSAGE_BLOCK_SIZE);
             assert(H.size() == SHA1_HASH_SIZE);
             assert(rounds > 0 && rounds <= SHA1_ROUNDS_NUMBER);
             
-            trace(tracer, "M", M);
+            tracer.trace("M", M);
             
             RefArray<Word> W(rounds);
             
@@ -67,7 +68,7 @@ namespace acl {;
                 W[t] = rotl(eor(arg), 1);
             };
             
-            trace(tracer, "W", W);
+            tracer.trace("W", W);
             
             Ref<Word> a = H0[0];
             Ref<Word> b = H0[1];
@@ -77,7 +78,7 @@ namespace acl {;
             
             for (unsigned int t = 0; t < rounds; t++) {
                 Ref<Word> ft = f(t, b, c, d);
-                trace(tracer, "F", ft, t);
+                tracer.trace("F", ft, t);
                 
                 RefArray<Word> temp_args = { rotl(a, 5), ft, e, W[t], k(t) };
                 Ref<Word> temp = add(temp_args);
@@ -88,11 +89,11 @@ namespace acl {;
                 b = a;
                 a = temp;
                 
-                trace(tracer, "A", a, t);
+                tracer.trace("A", a, t);
             };
             
             H = { H0[0] + a, H0[1] + b, H0[2] + c, H0[3] + d, H0[4] + e };
-            trace(tracer, "H", H);
+            tracer.trace("H", H);
         };
     };
 };

@@ -1,6 +1,6 @@
 //
 //  Propositional Logic Engine (PLE) Library
-//  https://cnfgen.sophisticatedways.net
+//  https://cgen.sophisticatedways.net
 //  Copyright © 2018 Volodymyr Skladanivskyy. All rights reserved.
 //  Published under terms of MIT license.
 //
@@ -19,6 +19,9 @@ namespace ple {
     // this is to enable 32 bit literals for some models
     
     typedef uint32_t variableid_t;
+    
+    // size of an array with variable values
+    typedef variableid_t variables_size_t;
 
     static constexpr variableid_t VARIABLEID_MIN = 0;
     static constexpr variableid_t VARIABLEID_MAX = ((UINT32_MAX - 1) >> 1) - 1;
@@ -46,14 +49,17 @@ namespace ple {
 #define variable_t__literal_id(id) variable_t__literal_id_negated_onlyif(id, 0)
     
 #define literal_t__is_negation(id) (bool)(((id) & 1) == 0)
+#define literal_t__is_negation_of(id, other_id) (((id) ^ (other_id)) == 1)
 #define literal_t__is_constant(id) (bool)((id) <= ple::LITERAL_CONST_1)
 #define literal_t__is_constant_0(id) (bool)((id) == LITERAL_CONST_0)
 #define literal_t__is_constant_1(id) (bool)((id) == LITERAL_CONST_1)
 #define literal_t__is_variable(id) (bool)((id) > LITERAL_CONST_1 && (id) <= LITERALID_MAX)
 #define literal_t__is_unassigned(id) (bool)((id) == LITERALID_UNASSIGNED)
+#define literal_t__is_same_variable(lhs, rhs) (bool)((((lhs) ^ (rhs)) >> 1) == 0)
 #define literal_t__variable_id(id) (ple::variableid_t)(((id) >> 1) - 1)
 #define literal_t__negated_onlyif(id, onlyif) ((id) ^ (onlyif ? 1 : 0))
 #define literal_t__negated(id) literal_t__negated_onlyif(id, 1)
+#define literal_t__unnegated(id) ((id) | 1)
 #define literal_t__sequence_next(id, step_size) (id) + ((step_size) << 1)
     
 // note that the below modifies the id
@@ -70,6 +76,9 @@ namespace ple {
 // looks up value variable and applies value sign to the result
 #define literal_t__lookup(variables, value) \
     literal_t__substitute_literal(value, variables[((value) >> 1) - 1])
+// well, just exclusive or
+#define literal_t__constant_eor(x, y) ((x) ^ (y))
+#define literal_t__constant_eor_lhs(x, y) ((x) ^= (y))
  
     class literal_t;
     
@@ -123,7 +132,7 @@ namespace ple {
         };
         
         inline bool is_negation_of(const literal_t& other) const {
-            return ((id_ ^ other.id_) == 0x1);
+            return literal_t__is_negation_of(id_, other.id_);
         };
         
         inline void negate(bool onlyif = true) {
@@ -287,11 +296,13 @@ namespace ple {
         inline variableid_t next() const { return next_; };
     public:
         virtual const variableid_t new_variable() { return next_++; };
+        virtual const literalid_t new_variable_literal() { return variable_t__literal_id(new_variable()); };
+        virtual const variableid_t last_variable() const { return next_ - 1; };
         
         inline void generate_unassigned(literalid_t* const data, const size_t size) {
             for (auto p_item = data; p_item < data + size; p_item++) {
                 if (*p_item == LITERALID_UNASSIGNED) {
-                    *p_item = variable_t__literal_id(new_variable());
+                    *p_item = new_variable_literal();
                 };
             };
         };

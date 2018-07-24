@@ -1,6 +1,6 @@
 //
 //  Propositional Logic Engine (PLE) Library
-//  https://cnfgen.sophisticatedways.net
+//  https://cgen.sophisticatedways.net
 //  Copyright © 2018 Volodymyr Skladanivskyy. All rights reserved.
 //  Published under terms of MIT license.
 //
@@ -15,7 +15,6 @@ namespace ple {
     
     typedef uint16_t clause_size_t;
     typedef uint32_t clauses_size_t;
-    typedef variableid_t variables_size_t;
     
     // maximal supported length of the clause (number of literals)
     // due to clause header

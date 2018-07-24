@@ -1,14 +1,11 @@
 //
-//  CNFGen
-//  https://cnfgen.sophisticatedways.net
+//  CGen
+//  https://cgen.sophisticatedways.net
 //  Copyright © 2018 Volodymyr Skladanivskyy. All rights reserved.
 //  Published under terms of MIT license.
 //
 
 #include <iostream>
-#include "cnfencoderbit.hpp"
-#include "sha1.hpp"
-#include "sha256.hpp"
 #include "shared.hpp"
 #include "commandline.hpp"
 #include "commands.hpp"
@@ -26,8 +23,8 @@ void print_help() {
 
 int main(int argc, const char * argv[]) {
     try {
-        CnfGenCommandInfo info;
-        CnfGenCommandLineReader command_line_reader(argc, argv);
+        CGenCommandInfo info;
+        CGenCommandLineReader command_line_reader(argc, argv);
         command_line_reader.parse(info);
         
         switch(info.command) {
@@ -35,22 +32,32 @@ int main(int argc, const char * argv[]) {
                 std::cout << ERROR_COMMAND_NONE << std::endl;
                 print_help();
             case cmdEncode:
-                switch(info.algorithm) {
-                    case algNone:
-                        throw std::invalid_argument(ERROR_MISSING_ALGORITHM);
-                    case algSHA1:
-                        encode<acl::SHA1<ple::CnfEncoderBit>>(info.rounds, info.variables_map,
-                            info.add_max_args, info.xor_max_args, info.output_file_name.data());
-                        break;
-                    case algSHA256:
-                        encode<acl::SHA256<ple::CnfEncoderBit>>(info.rounds, info.variables_map,
-                            info.add_max_args, info.xor_max_args, info.output_file_name.data());
-                        break;
+                if (info.algorithm == algNone) {
+                    throw std::invalid_argument(ERROR_MISSING_ALGORITHM);
+                };
+                
+                if (info.output_file_name.size() == 0) {
+                    throw std::invalid_argument(ERROR_MISSING_OUTPUT_FILE_NAME);
+                };
+                
+                std::cout << "Encoding " << (info.algorithm == algSHA1 ? "SHA-1" : "SHA-256") << " into ";
+                std::cout << (info.format == fmtCnfDimacs ? "CNF in DIMACS format" : "ANF in PolyBoRi format") << std::endl;
+                
+                if (info.format == fmtCnfDimacs) {
+                    encode_cnf(info.algorithm, info.rounds,
+                               info.variables_map, info.is_normalize_variables_specified,
+                               info.add_max_args, info.xor_max_args,
+                               info.output_file_name.c_str());
+                } else {
+                    encode_anf(info.algorithm, info.rounds,
+                               info.variables_map, info.is_normalize_variables_specified,
+                               info.output_file_name.c_str());
                 };
                 break;
             case cmdAssign:
             case cmdDefine:
-                assign(info.variables_map, info.input_file_name.data(), info.output_file_name.data());
+                assign(info.variables_map, info.is_normalize_variables_specified,
+                       info.input_file_name.data(), info.output_file_name.data());
                 break;
             case cmdHelp:
                 print_help();

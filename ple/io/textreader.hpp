@@ -1,6 +1,6 @@
 //
 //  Propositional Logic Engine (PLE) Library
-//  https://cnfgen.sophisticatedways.net
+//  https://cgen.sophisticatedways.net
 //  Copyright © 2018 Volodymyr Skladanivskyy. All rights reserved.
 //  Published under terms of MIT license.
 //
@@ -11,6 +11,7 @@
 #include <string>
 #include <vector>
 #include <ostream>
+#include <stdint.h>
 
 #define ERROR_BIN_INVALID_SYMBOL "Invalid symbol in binary value"
 #define ERROR_HEX_INVALID_SYMBOL "Invalid symbol in hexadecimal value"
@@ -340,7 +341,7 @@ public:
         int64_t result = read_uint32();
         if (is_negative) result = -result;
         
-        if (result > INT_MAX or result < INT_MIN) {
+        if (result > INT32_MAX or result < INT32_MIN) {
             parse_error("The signed int 32 bit value is out of bounds");
         };
         return (int32_t)result;
@@ -404,7 +405,7 @@ public:
     inline void skip_symbol() {
         if (current_token_len_ > 0) {
             current_token_pos_++;
-            current_token_len_--;
+            reset_token();
         };
     };
     

@@ -1,6 +1,6 @@
 //
 //  Propositional Logic Engine (PLE) Library
-//  https://cnfgen.sophisticatedways.net
+//  https://cgen.sophisticatedways.net
 //  Copyright © 2018 Volodymyr Skladanivskyy. All rights reserved.
 //  Published under terms of MIT license.
 //
@@ -28,10 +28,10 @@ namespace ple {
         virtual T* const assign(VariableGenerator& generator) = 0;
         
         // evaluates T with given parameters
-        virtual T_SCALAR evaluate(const literalid_t* const value, const size_t value_size) const = 0;
+        virtual const T_SCALAR evaluate(const literalid_t* const value, const size_t value_size) const = 0;
         // decodes T into a scalar value
         // must work if and only if is_constant() is true
-        virtual operator T_SCALAR() const = 0;
+        virtual operator const T_SCALAR() const = 0;
         // indicates a cnstant, i.e. a scalar value
         virtual const bool is_constant() const = 0;
     };

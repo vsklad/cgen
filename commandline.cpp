@@ -1,6 +1,6 @@
 //
-//  CNFGen
-//  https://cnfgen.sophisticatedways.net
+//  CGen
+//  https://cgen.sophisticatedways.net
 //  Copyright © 2018 Volodymyr Skladanivskyy. All rights reserved.
 //  Published under terms of MIT license.
 //
@@ -10,15 +10,18 @@
 #include "sha256.hpp"
 #include "cnfencoderbit.hpp"
 
-const constexpr size_t APP_OPTIONS_SIZE = 7;
+const constexpr size_t APP_OPTIONS_SIZE = 10;
 const constexpr char* APP_OPTIONS[APP_OPTIONS_SIZE] = {
-    "v", "r", "add_max_args", "xor_max_args", "h", "help", "version"};
+    "f", "v", "r",
+    "add_max_args", "xor_max_args",
+    "h", "help", "version",
+    "nv", "normalize_variables"};
 
 void print_arg_ignore(const char* const message, const char* const arg) {
     std::cout << "Ignoring " << message << ": " << arg << std::endl;
 };
 
-ple::VariablesArray CnfGenCommandLineReader::read_remaining_line_bytes() {
+ple::VariablesArray CGenCommandLineReader::read_remaining_line_bytes() {
     const std::string s_current_line = read_until_eol();
     const uint32_t size_bytes = (uint32_t)s_current_line.size();
     const std::string current_line = s_current_line.c_str();
@@ -37,8 +40,8 @@ ple::VariablesArray CnfGenCommandLineReader::read_remaining_line_bytes() {
     return value;
 };
 
-CnfGenVariableInfo* CnfGenCommandLineReader::parse_variable_value(CnfGenVariablesMap& variables_map,
-                                                                  const CnfGenCommand command) {
+CGenVariableInfo* CGenCommandLineReader::parse_variable_value(CGenVariablesMap& variables_map,
+                                                                  const CGenCommand command) {
     if (!is_token(TextReader::ttLiteral)) {
         parse_error(ERROR_INVALID_VARIABLE_NAME);
     };
@@ -53,7 +56,7 @@ CnfGenVariableInfo* CnfGenCommandLineReader::parse_variable_value(CnfGenVariable
         parse_error(ERROR_MISSING_VARIABLE_VALUE);
     };
     
-    CnfGenVariableInfo variable_value;
+    CGenVariableInfo variable_value;
     
     if (command == cmdDefine) {
         variable_value.mode = vmDefine;
@@ -79,7 +82,7 @@ CnfGenVariableInfo* CnfGenCommandLineReader::parse_variable_value(CnfGenVariable
         };
     };
     
-    auto r = variables_map.insert(CnfGenVariablesMap::value_type(variable_name, variable_value));
+    auto r = variables_map.insert(CGenVariablesMap::value_type(variable_name, variable_value));
     if (!r.second) {
         parse_error(ERROR_DUPLICATED_VARIABLE_NAME);
     };
@@ -87,7 +90,7 @@ CnfGenVariableInfo* CnfGenCommandLineReader::parse_variable_value(CnfGenVariable
     return &(r.first->second);
 };
 
-void CnfGenCommandLineReader::parse_variable_require_constant(const CnfGenVariableInfo* p_variable_value) {
+void CGenCommandLineReader::parse_variable_require_constant(const CGenVariableInfo* p_variable_value) {
     if (p_variable_value == nullptr) {
         parse_error(ERROR_EXCEPT_PAD_MUST_FOLLOW_CONSTANT);
     };
@@ -96,7 +99,7 @@ void CnfGenCommandLineReader::parse_variable_require_constant(const CnfGenVariab
     };
 };
 
-void CnfGenCommandLineReader::parse_variable_except(CnfGenVariableInfo* p_variable_value) {
+void CGenCommandLineReader::parse_variable_except(CGenVariableInfo* p_variable_value) {
     skip_token();
     read_symbol(':');
     p_variable_value->var_range_first = read_uint32();
@@ -111,7 +114,7 @@ void CnfGenCommandLineReader::parse_variable_except(CnfGenVariableInfo* p_variab
     };
 };
 
-void CnfGenCommandLineReader::parse_variable_pad(CnfGenVariableInfo* p_variable_value) {
+void CGenCommandLineReader::parse_variable_pad(CGenVariableInfo* p_variable_value) {
     skip_token();
     read_symbol(':');
     if (is_token("sha1") || is_token("SHA1")) {
@@ -120,24 +123,43 @@ void CnfGenCommandLineReader::parse_variable_pad(CnfGenVariableInfo* p_variable_
                                                        p_variable_value->data.size());
         skip_token();
     } else if (is_token("sha256") || is_token("SHA256")) {
-        acl::SHA256<ple::CnfEncoderBit>::pad_message(p_variable_value->data.data(),
-                                                   p_variable_value->data.size());
+        p_variable_value->data =
+            acl::SHA256<ple::CnfEncoderBit>::pad_message(p_variable_value->data.data(),
+                                                         p_variable_value->data.size());
         skip_token();
     } else {
         parse_error(ERROR_PAD_UNKNOWN_VALUE);
     };
 };
 
-void CnfGenCommandLineReader::parse(CnfGenCommandInfo& info) {
-    CnfGenVariableInfo* p_last_variable = nullptr;
+void CGenCommandLineReader::parse(CGenCommandInfo& info) {
+    CGenVariableInfo* p_last_variable = nullptr;
     
     skip_line(); // the first argument is the file name
     while (!is_eof()) {
-        CnfGenVariableInfo* p_current_variable = nullptr;
+        CGenVariableInfo* p_current_variable = nullptr;
         if (is_option()) {
             int option_index = read_option(APP_OPTIONS, APP_OPTIONS_SIZE);
             switch(option_index) {
-                case 0: { // variable
+                case 0: // format
+                    if (is_eol()) {
+                        read_eol();
+                    };
+                    if (is_token("cnf") || is_token("CNF")) {
+                        skip_token();
+                        info.format = fmtCnfDimacs;
+                    } else if (is_token("anf") || is_token("ANF")) {
+                        skip_token();
+                        if (info.command != cmdEncode) {
+                            parse_error(ERROR_ANF_ENCODE_ONLY);
+                        } else {
+                            info.format = fmtAnfPolybori;
+                        }
+                    } else {
+                        parse_error(ERROR_UNKNOWN_FORMAT);
+                    };
+                    break;
+                case 1: // variable
                     if (info.command != cmdEncode &&
                         info.command != cmdAssign &&
                         info.command != cmdDefine) {
@@ -148,8 +170,7 @@ void CnfGenCommandLineReader::parse(CnfGenCommandInfo& info) {
                     };
                     p_current_variable = parse_variable_value(info.variables_map, info.command);
                     break;
-                };
-                case 1: // rounds
+                case 2: // rounds
                     if (info.command != cmdEncode) {
                         parse_error(ERROR_R_MUST_FOLLOW_ENCODE);
                     };
@@ -158,7 +179,7 @@ void CnfGenCommandLineReader::parse(CnfGenCommandInfo& info) {
                     };
                     info.rounds = read_uint32(1, UINT32_MAX);
                     break;
-                case 2: // add_max_agrs
+                case 3: // add_max_agrs
                     if (info.command != cmdEncode) {
                         parse_error(ERROR_ADD_MAX_ARGS_MUST_FOLLOW_ENCODE);
                     };
@@ -169,7 +190,7 @@ void CnfGenCommandLineReader::parse(CnfGenCommandInfo& info) {
                         parse_error(ERROR_ADD_MAX_ARGS_RANGE);
                     };
                     break;
-                case 3: // xor_max_args
+                case 4: // xor_max_args
                     if (info.command != cmdEncode) {
                         parse_error(ERROR_XOR_MAX_ARGS_MUST_FOLLOW_ENCODE);
                     };
@@ -180,12 +201,16 @@ void CnfGenCommandLineReader::parse(CnfGenCommandInfo& info) {
                         parse_error(ERROR_XOR_MAX_ARGS_RANGE);
                     };
                     break;
-                case 4: // help
-                case 5:
+                case 5: // help
+                case 6:
                     info.command = cmdHelp;
                     break;
-                case 6: // version
+                case 7: // version
                     info.command = cmdVersion;
+                    break;
+                case 8:
+                case 9: // normalize_variables
+                    info.is_normalize_variables_specified = true;
                     break;
                 default:
                     print_arg_ignore(ERROR_UNKNOWN_OPTION, get_current_line());

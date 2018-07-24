@@ -1,6 +1,6 @@
 //
 //  Propositional Logic Engine (PLE) Library
-//  https://cnfgen.sophisticatedways.net
+//  https://cgen.sophisticatedways.net
 //  Copyright © 2018 Volodymyr Skladanivskyy. All rights reserved.
 //  Published under terms of MIT license.
 //
@@ -65,7 +65,7 @@ namespace ple {
     };
     
     template<class T>
-    class BitAllocator: public Allocator<T> {
+    class BitAllocator: public RefTargetAllocator<T> {
     private:
         Ref<T> const_[2];
     public:
@@ -76,7 +76,7 @@ namespace ple {
         
         virtual T* new_constant(Ref<T>* ref, const typename T::ScalarValue value) override {
             *ref = const_[value];
-            return const_[value];
+            return ref->data();
         };
     };
 };

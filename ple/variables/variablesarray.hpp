@@ -1,6 +1,6 @@
 //
 //  Propositional Logic Engine (PLE) Library
-//  https://cnfgen.sophisticatedways.net
+//  https://cgen.sophisticatedways.net
 //  Copyright © 2018 Volodymyr Skladanivskyy. All rights reserved.
 //  Published under terms of MIT license.
 //
@@ -48,7 +48,6 @@ namespace ple {
         };
         
         inline VariablesArray& operator = (const std::initializer_list<const uint32_t> &values) {
-            assert(values.size() == size_);
             assign(values);
             return *this;
         };
@@ -59,7 +58,7 @@ namespace ple {
             for (variableid_t i = 0; i < values.size(); i++) {
                 uint32_t value_i = *(values.begin() + i);
                 for (variableid_t j = 0; j < element_size_; j++) {
-                    data_[i * element_size_ + j] = literal_t__constant(value_i & (0x1 << j));
+                    data_[i * element_size_ + j] = literal_t__constant(value_i & (0x1 << (element_size_ - j - 1)));
                 };
             };
         };

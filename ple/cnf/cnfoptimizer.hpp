@@ -1,6 +1,6 @@
 //
 //  Propositional Logic Engine (PLE) Library
-//  https://cnfgen.sophisticatedways.net
+//  https://cgen.sophisticatedways.net
 //  Copyright © 2018 Volodymyr Skladanivskyy. All rights reserved.
 //  Published under terms of MIT license.
 //
@@ -16,19 +16,20 @@
 
 #ifdef LOG_VARIABLE_ASSIGNMENTS
 #define LOG_VARIABLE_ASSIGNMENT(variable_id, value) \
-    std::cout << "a: " << variable_id + 1 << " = " << literal_t(value) << std::endl;
+    std::cout << "->: " << variable_id + 1 << " = " << literal_t(value) << std::endl;
 #else
 #define LOG_VARIABLE_ASSIGNMENT(variable_id, value)
 #endif
 
 #ifdef LOG_CLAUSE_EVALUATIONS
-#define LOG_CLAUSE(action, p_clause) \
+#define LOG_CLAUSE(action, offset) \
     std::cout << action << ": "; \
-    cnf_.print_clause(std::cout, *p_clause, p_clause + 1, "; "); \
-    std::cout << std::endl;
+    __print_clause(offset);
 #else
-#define LOG_CLAUSE(action, p_clause)
+#define LOG_CLAUSE(action, offset)
 #endif
+
+#define DEBUG_ASSERT(expression) assert(expression)
 
 namespace ple {
     
@@ -39,7 +40,7 @@ namespace ple {
     // therefore, optimization proceeds like a wave and stops
     // when all clauses (inclusive of newly generated ones) are validated
     class CnfOptimizer: public CnfProcessor {
-    private:
+    protected:
         enum evaluation_result_t { Undetermined, Satisfied, Conflict };
 
     protected:
@@ -84,6 +85,23 @@ namespace ple {
                 index = var_clauses_index_.data_[index].next_item;
             };
             return false;
+        };
+        
+        // DEBUG method
+        inline void __print_clause(const uint32_t offset) const {
+            std::cout << (is_clause_included(offset) ? "i" : "e") << ": ";
+            Cnf::print_clause(std::cout, clauses_.data_ + offset, "; ");
+            std::cout << std::endl;
+        };
+        
+        // DEBUG method
+        inline void __print_variable_clauses(const variableid_t variable_id) const {
+            std::cout << "Variable clauses for " << variable_id + 1 << ":" << std::endl;
+            uint32_t* p_index = var_clauses_.data_ + variable_id;
+            while (*p_index != CLAUSES_END) {
+                __print_clause(var_clauses_index_.data_[*p_index].offset);
+                p_index = &(var_clauses_index_.data_[*p_index].next_item);
+            };
         };
         
         inline static void reduce_clause_flags(uint16_t& flags, const clause_size_t index, const literalid_t value) {
@@ -163,8 +181,7 @@ namespace ple {
                         flags = (flags & 0x0003) | (flags & 0x03C0) >> 4 | (flags & 0xC000) >> 8;
                         break;
                     case 0x13: // l1 = l3
-                        flags = (flags & 0x0003) | (flags & 0x0030) >> 2 |
-                            (flags & 0x0C00) >> 6 | (flags & 0xC000) >> 8;
+                        flags = (flags & 0x0033) | (flags & 0xCC00) >> 8;
                         break;
                     case 0x23: // l2 = l3
                         flags = (flags & 0x000F) | (flags & 0xF000) >> 8;
@@ -240,8 +257,6 @@ namespace ple {
             bool is_clause_changed = false;
             evaluation_result_t result = Undetermined;
             
-            LOG_CLAUSE("e", p_clause);
-            
             // copy literals checking for constants and changes
             // if an aggregate, reduce/ensure literals are uncomplemented
             if (literals_size <= 4) {
@@ -270,19 +285,18 @@ namespace ple {
                  
                 if (flags == 0) {
                     // all aggregated clauses satisfied
-                    exclude_clause(offset);
                     result = Satisfied;
                 } else {
                     switch(new_literals_size) {
                         case 0:
-                            exclude_clause(offset);
                             result = Conflict;
                             break;
                         case 1:
-                            exclude_clause(offset);
                             if (flags == 0b11) {
                                 result = Conflict;
                             } else {
+                                exclude_clause(offset); // TODO: must exclude here in order to avoid/reduce recursion (?)
+                                LOG_CLAUSE("e", offset);
                                 result = assign_literal_value(new_literals[0], flags == 0b10);
                             };
                             break;
@@ -299,13 +313,16 @@ namespace ple {
                                 case 0b0110:
                                 case 0b1001: {
                                     // found full equivalence
-                                    exclude_clause(offset);
                                     const literalid_t lhs = var_values[literal_t__variable_id(new_literals[1])];
                                     const literalid_t rhs = literal_t__negated_onlyif(new_literals[0], flags == 0b1001);
                                     if (literal_t__is_constant(lhs) && literal_t__is_variable(rhs)) {
                                         // TODO: why is this possible????
+                                        exclude_clause(offset); // TODO: must exclude here in order to avoid/reduce recursion (?)
+                                        LOG_CLAUSE("e", offset);
                                         result = assign_literal_value(rhs, lhs);
                                     } else if (lhs != rhs) {
+                                        exclude_clause(offset); // TODO: must exclude here in order to avoid/reduce recursion (?)
+                                        LOG_CLAUSE("e", offset);
                                         result = assign_literal_value(new_literals[1], rhs);
                                     } else {
                                         result = Satisfied;
@@ -314,13 +331,15 @@ namespace ple {
                                 };
                                 case 0b0101:
                                 case 0b1010:
-                                    exclude_clause(offset);
+                                    exclude_clause(offset); // TODO: must exclude here in order to avoid/reduce recursion (?)
+                                    LOG_CLAUSE("e", offset);
                                     // first variable value is inferred
                                     result = assign_literal_value(new_literals[0], flags == 0b1010);
                                     break;
                                 case 0b0011:
                                 case 0b1100:
-                                    exclude_clause(offset);
+                                    exclude_clause(offset); // TODO: must exclude here in order to avoid/reduce recursion (?)
+                                    LOG_CLAUSE("e", offset);
                                     // second variable value is inferred
                                     result = assign_literal_value(new_literals[1], flags == 0b1100);
                                     break;
@@ -338,7 +357,8 @@ namespace ple {
                                     // TODO: consider testing and maybe implementing
                                     // simultaneous setting of variables
                                     const literalid_t literal_id_1 = new_literals[1];
-                                    exclude_clause(offset);
+                                    exclude_clause(offset); // TODO: must exclude here in order to avoid/reduce recursion (?)
+                                    LOG_CLAUSE("e", offset);
                                     result = assign_literal_value(new_literals[0], (flags & 0b1010) == 0b1010);
                                     if (result != Conflict) {
                                         result = assign_literal_value(literal_id_1, (flags & 0b1100) == 0b1100);
@@ -346,7 +366,6 @@ namespace ple {
                                     break;
                                 };
                                 case 0b1111:
-                                    exclude_clause(offset);
                                     result = Conflict;
                                     break;
                             };
@@ -364,29 +383,29 @@ namespace ple {
                     if (literal_t__is_variable(new_literals[new_literals_size])) {
                         new_literals_size++;
                     } else if (literal_t__is_constant_1(new_literals[new_literals_size])) {
-                        exclude_clause(offset);
                         result = Satisfied;
                         break;
                     };
                 };
                 if (result != Satisfied) {
                     if (new_literals_size == 0) {
-                        exclude_clause(offset);
                         result = Satisfied;
                     } else if (is_clause_changed) {
                         *p_new_clause = cnf_.normalize_clause(new_literals, new_literals_size);
                         if (*p_new_clause == 0) {
-                            exclude_clause(offset);
                             result = Satisfied;
                         };
                     };
                 };
             };
             
-            if (result == Undetermined && is_clause_changed) {
+            if (result == Satisfied) {
+                exclude_clause(offset);
+            } else if (result == Undetermined && is_clause_changed) {
                 exclude_clause(offset);
                 cnf_.append_clause(p_new_clause);
-                LOG_CLAUSE("s", p_new_clause);
+                LOG_CLAUSE("e", offset);
+                LOG_CLAUSE("->", (uint32_t)(p_new_clause - clauses_.data_));
             };
              
             return result;
@@ -424,6 +443,7 @@ namespace ple {
                         if (evaluate_clause(offset) == Conflict) {
                             return Conflict;
                         };
+                        DEBUG_ASSERT(!is_clause_included(offset));
                     };
                     next_item = var_clauses_index_.data_[next_item].next_item;
                 };
@@ -450,6 +470,7 @@ namespace ple {
                         // assume referencing of variables with lower ids only
                         // and therefore the reference is updated by now
                         assert(i > variable_id);
+                        // all clauses with the variable must have been excluded
                         assert(!is_variable_used(i));
                         // UNASSIGNED may not be referenced
                         assert(!literal_t__is_unassigned(var_values[variable_id]));
@@ -543,17 +564,11 @@ namespace ple {
             clauses_bitmap_.reset(0); // all remaining clauses are included
         };
         
-        void update_named_variables() {
-            for (auto vit = named_variables_.begin(); vit != named_variables_.end(); vit++) {
-                variables_.assign_template_into(vit->second, vit->second);
-            };
-        };
-        
     protected:
         // process clauses one by one
         // the list will grow after each optimization
         // therefore the process will stop when consequences of all optimizations are evaluated
-        inline void evaluate_clauses() {
+        inline evaluation_result_t evaluate_clauses() {
             evaluations = 0;
             
             uint32_t offset = 0;
@@ -563,45 +578,61 @@ namespace ple {
                 if (is_clause_included(offset)) {
                     processed_offset_ = offset;
                     if (evaluate_clause(offset) == Conflict) {
-                        
-                        Cnf::print_clause(std::cout, clauses_.data_ + offset);
-                        update_variables(false);
-                        std::cout << variables_ << std::endl;
-                        assert(false);
+                        std::cout << "CONFLICT" << std::endl;
+                        std::cout << "Clause(s):" << std::endl;
+                        __print_clause(offset);
+                        std::cout << "Variable(s):" << std::endl;
+                        for (auto i = 0; i < literals_size; i++) {
+                            const literalid_t literal_id = *(clauses_.data_ + offset + i + 1);
+                            const variableid_t variable_id = literal_t__variable_id(literal_id);
+                            const literalid_t value_id = variables_.data()[variable_id];
+                            std::cout << literal_t(variable_t(variable_id)) << " = " << literal_t(value_id) << std::endl;
+                        };
+                        return Conflict;
                     };
                 };
                 offset += literals_size + 1;
             };
             
             std::cout << "Clause evaluations: " << std::dec << evaluations << std::endl;
+            return Undetermined;
         };
         
         // apply all identified optimizations to the formula
         inline void apply_optimizations() {
             update_variables(true);
             update_clauses();
-            update_named_variables();
+            cnf_.named_variables_update(variables_);
             clauses_bitmap_.reset(0); // all remaining clauses are included
+        };
+        
+        inline const bool evaluate_optimize() {
+            bool result = (evaluate_clauses() != Conflict);
+            if (result) {
+                apply_optimizations();
+            };
+            return result;
         };
         
     public:
         CnfOptimizer(Cnf& cnf): CnfProcessor(cnf), variables_(cnf_.variables_size()) {};
         
         // optimizes the given Cnf without any parameters
-        virtual void execute() override {
+        virtual const bool execute() override {
             variables_.assign_sequence();
             
             const int64_t original_clauses_size = cnf_.clauses_size();
             
-            evaluate_clauses();
-            apply_optimizations();
-            
-            std::cout << "Optimized: " << std::dec;
-            std::cout << "(" << variables_.size() << ", " << original_clauses_size << ") -> ";
-            std::cout << "(" << variables_.size() - cnf_.variables_size() << ",";
-            std::cout << original_clauses_size - cnf_.clauses_size() << ") -> ";
-            std::cout << "(" << cnf_.variables_size() << ", " << cnf_.clauses_size() << ")";
-            std::cout << std::endl;
+            bool result = evaluate_optimize();
+            if (result) {
+                std::cout << "Optimized: " << std::dec;
+                std::cout << "(" << variables_.size() << ", " << original_clauses_size << ") -> ";
+                std::cout << "(" << variables_.size() - cnf_.variables_size() << ",";
+                std::cout << original_clauses_size - cnf_.clauses_size() << ") -> ";
+                std::cout << "(" << cnf_.variables_size() << ", " << cnf_.clauses_size() << ")";
+                std::cout << std::endl;
+            };
+            return result;
         };
     };
     
@@ -609,33 +640,40 @@ namespace ple {
     // both parameters and result must correspond to existing named variables
     class CnfVariableEvaluator: public CnfOptimizer {
     private:
-        inline void execute_() {
+        inline const bool execute_() {
             cnf_.begin_transaction();
-            
-            evaluate_clauses();
-            update_variables(false);
+
+            bool result = (evaluate_clauses() != Conflict);
+            if (result) {
+                update_variables(false);
+            };
             
             cnf_.rollback_transaction();
+            return result;
         };
         
     public:
         CnfVariableEvaluator(Cnf& cnf): CnfOptimizer(cnf) {};
         
-        virtual void execute(const char* parameters_name, const VariablesArray& parameters,
-                      const char* result_name, VariablesArray &result) {
+        virtual const bool execute(const char* parameters_name, const VariablesArray& parameters,
+                      const char* result_name, VariablesArray &result_value) {
             variables_.assign_sequence();
-            variables_.assign_template_from(cnf_.named_variables().at(parameters_name), parameters);
-            
-            execute_();
-            
-            // compose result using the variable template and the result of the evaluation
-            variables_.assign_template_into(cnf_.named_variables().at(result_name), result);
+            variables_.assign_template_from(cnf_.get_named_variables().at(parameters_name), parameters);
+            bool result = execute_();
+            if (result) {
+                // compose result using the variable template and the result of the evaluation
+                variables_.assign_template_into(cnf_.get_named_variables().at(result_name), result_value);
+            };
+            return result;
         };
         
-        virtual void execute(VariablesArray& variables) {
+        virtual const bool execute(VariablesArray& variables) {
             variables_.assign(variables);
-            execute_();
-            variables.assign(variables_);
+            bool result = execute_();
+            if (result) {
+                variables.assign(variables_);
+            };
+            return result;
         };
     };
     
@@ -643,33 +681,72 @@ namespace ple {
     // removes satisfied clauses via propagation of the supplied variable values
     // updates all named variables to reflect constant assignments
     class CnfVariableAssigner: public CnfOptimizer {
-    private:
-        inline void execute_() {
-            evaluate_clauses();
-            apply_optimizations();
-        };
-        
     public:
         CnfVariableAssigner(Cnf& cnf): CnfOptimizer(cnf) {};
         
-        virtual void execute(const char* name, const VariablesArray& value) {
+        virtual const bool execute(const char* name, const VariablesArray& value) {
             variables_.assign_sequence();
-            variables_.assign_template_from(cnf_.named_variables().at(name), value);
-            
-            execute_();
-            
-            std::cout << "\"" << name << "\" assignment eliminated ";
-            std::cout << std::dec << variables_.size() - cnf_.variables_size() << " variables" << std::endl;
+            variables_.assign_template_from(cnf_.get_named_variables().at(name), value);
+            bool result = evaluate_optimize();
+            if (result) {
+                std::cout << "\"" << name << "\" assignment eliminated ";
+                std::cout << std::dec << variables_.size() - cnf_.variables_size() << " variables" << std::endl;
+            };
+            return result;
         };
         
-        virtual void execute(const VariablesArray& variables) {
+        virtual const bool execute(const VariablesArray& variables) {
             variables_.assign(variables);
-            
-            execute_();
-            
-            std::cout << "Assignment eliminated ";
-            std::cout << std::dec << variables_.size() - cnf_.variables_size() << " variables" << std::endl;
+            bool result = evaluate_optimize();
+            if (result) {
+                std::cout << "Assignment eliminated ";
+                std::cout << std::dec << variables_.size() - cnf_.variables_size() << " variables" << std::endl;
+            };
+            return result;
         };
+    };
+    
+    class CnfVariableNormalizer: public CnfOptimizer {
+    public:
+        CnfVariableNormalizer(Cnf& cnf): CnfOptimizer(cnf) {};
+        
+        virtual const bool execute() override {
+            variables_.assign_sequence();
+            cnf_.named_variables_assign_negations(variables_);
+            apply_optimizations();
+            
+            // it is possible that some negated references remain
+            // since the same variable may appear straight and completented
+            // across named variables
+            // for those, need to introduce new variables
+            
+            for (auto vit = named_variables_.begin(); vit != named_variables_.end(); vit++) {
+                literalid_t* const template_ = vit->second.data();
+                for (auto j = 0; j < vit->second.size(); j++) {
+                    if (literal_t__is_variable(template_[j]) && literal_t__is_negation(template_[j])) {
+                        literalid_t value = cnf_.variable_generator().new_variable_literal();
+                        cnf_.append_clause_l(value, literal_t__negated(template_[j]));
+                        cnf_.append_clause_l(literal_t__negated(value), template_[j]);
+                        template_[j] = value;
+                    };
+                };
+            };
+            
+            return true;
+        };
+    };
+    
+    inline const bool evaluate(Cnf& cnf, const char* parameters_name, const VariablesArray& parameters,
+                         const char* result_name, VariablesArray &result) {
+        return CnfVariableEvaluator(cnf).execute(parameters_name, parameters, result_name, result);
+    };
+    
+    inline const bool assign(Cnf& cnf, const char* name, const VariablesArray& value) {
+        return CnfVariableAssigner(cnf).execute(name, value);
+    };
+    
+    inline const bool normalize_variables(Cnf& cnf) {
+        return CnfVariableNormalizer(cnf).execute();
     };
 };
 

@@ -1,6 +1,6 @@
 //
 //  Propositional Logic Engine (PLE) Library
-//  https://cnfgen.sophisticatedways.net
+//  https://cgen.sophisticatedways.net
 //  Copyright © 2018 Volodymyr Skladanivskyy. All rights reserved.
 //  Published under terms of MIT license.
 //
@@ -14,6 +14,7 @@
 
 namespace ple {
     
+    /*
     // TODO: optimize cases where x = y = c ?
     // TODO: check what remainst of a constant ?
     template<WordSize WORD_SIZE>
@@ -47,11 +48,12 @@ namespace ple {
             (*r)[i] = r_i;
         };
     };
-    
+    */
+     
     // add carry to the end of the list
     // carry_size is a number of variables at the end of the list that are carry
     inline void add_append_carry_(const Ref<CnfEncoderBit>& arg, std::vector<Ref<CnfEncoderBit>>& variables) {
-        if (!arg->literal().is_constant_0()) {
+        if (!literal_t__is_constant_0(arg->literal_id())) {
             variables.push_back(arg);
         };
     };
@@ -64,8 +66,8 @@ namespace ple {
         } else {
             // check for duplicates including negation
             for (auto i = 0; i < variables.size(); i++) {
-                if (arg->literal().variable_id() == variables[i]->literal().variable_id()) {
-                    if (arg->literal().is_negation_of(variables[i]->literal())) {
+                if (literal_t__is_same_variable(arg->literal_id(), variables[i]->literal_id())) {
+                    if (literal_t__is_negation_of(arg->literal_id(), variables[i]->literal_id())) {
                         // if negation, x + !x <=> 1; remove variables[i] and add 1
                         constant += 1;
                     } else {
@@ -86,12 +88,9 @@ namespace ple {
     };
     
     template<WordSize WORD_SIZE>
-    inline Ref<Word<WORD_SIZE, CnfEncoderBit>> add(const RefArray<Word<WORD_SIZE, CnfEncoderBit>> &args) {
-        
-        Ref<Word<WORD_SIZE, CnfEncoderBit>> result;
-        result.new_instance();
-        
-        assert(args.size() <= 5); // this implementation only support 5, also see cnfaddmap.hpp
+    inline void add_(Word<WORD_SIZE, CnfEncoderBit>* result,
+                    const Word<WORD_SIZE, CnfEncoderBit>* const args[], const ArgsSize args_size) {
+        assert(args_size <= 5); // this implementation only support 5, also see cnfaddmap.hpp
         
         // result of the bit add
         Ref<CnfEncoderBit> r;
@@ -115,7 +114,7 @@ namespace ple {
                 add_append_variable_(carry_in[j], variables, carry_out_1, constant);
             };
             // filter out variables from args
-            for (ArgsSize j = 0; j < args.size(); j++) {
+            for (ArgsSize j = 0; j < args_size; j++) {
                 add_append_variable_((*args[j])[i], variables, carry_out_1, constant);
             };
             
@@ -143,7 +142,7 @@ namespace ple {
                         r = variables[0];
                     };
                 } else {
-                    // for SHA1, 6 variables is the max possible
+                    // for SHA1/SHA256, 6 variables is the max possible
                     // addition of 4 variables + 1 constant
                     // i.e. 4 input + 2 carry in
                     // for other purposes, ADD_MAP may be extended
@@ -210,7 +209,22 @@ namespace ple {
             // remaining bits of the constant passed to the next round
             constant >>= 1;
         };
-        
+    };
+    
+    // customizes add2() which is distinct from add()
+    template<WordSize WORD_SIZE>
+    inline void word_add2(Word<WORD_SIZE, CnfEncoderBit>* r,
+                          const Word<WORD_SIZE, CnfEncoderBit>* x,
+                          const Word<WORD_SIZE, CnfEncoderBit>* y) {
+        const Word<WORD_SIZE, CnfEncoderBit>* args[2] = { x, y };
+        add_(r, args, 2);
+    };
+    
+    template<WordSize WORD_SIZE>
+    inline Ref<Word<WORD_SIZE, CnfEncoderBit>> add(const RefArray<Word<WORD_SIZE, CnfEncoderBit>> &args) {
+        Ref<Word<WORD_SIZE, CnfEncoderBit>> result;
+        result.new_instance();
+        add_(result.data(), args.data(), args.size());
         return result;
     };
 };
