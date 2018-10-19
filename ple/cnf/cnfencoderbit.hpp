@@ -189,10 +189,8 @@ namespace ple {
                 literalid_t f = cnf_->variable_generator().new_variable_literal();
                 cnf_->append_clause_l(literal_t__negated(x->value_), y->value_, literal_t__negated(f));
                 cnf_->append_clause_l(x->value_, z->value_, literal_t__negated(f));
-                cnf_->append_clause_l(y->value_, z->value_, literal_t__negated(f));
                 cnf_->append_clause_l(literal_t__negated(x->value_), literal_t__negated(y->value_), f);
                 cnf_->append_clause_l(x->value_, literal_t__negated(z->value_), f);
-                cnf_->append_clause_l(literal_t__negated(y->value_), literal_t__negated(z->value_), f);
                 value_ = f;
             };
             return this;

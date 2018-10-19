@@ -13,7 +13,7 @@ Beyond encoding techniques, for variable assignments CGen implements unit propag
 CGen implements three notable features.
 
 ### Compact encoding
-The encoding is optimized to minimize both number of variables and number of clauses/equations. The assumption is that without redundancies, it may be easier to analyse the problem's complexity and structure. Application of the below techniques results in substantially more compact encodings than those published to date and known to the author. As an example, full SHA-1 is encoded into CNF with 26,156 variables and 128,224 clauses.
+The encoding is optimized to minimize both number of variables and number of clauses/equations. The assumption is that without redundancies, it may be easier to analyse the problem's complexity and structure. Application of the below techniques results in substantially more compact encodings than those published to date and known to the author. As an example, full SHA-1 is encoded into CNF with 26,156 variables and 127,200 clauses.
 
 1. New variables are introduced only when necessary. For example, rotation, negation, operations where all arguments are constants, require no additional variables.
 2. All boolean algebra operations/primitive functions are encoded in the most efficient possible way.
