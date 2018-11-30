@@ -4,6 +4,7 @@ CGen is a tool for encoding [SHA-1](https://en.wikipedia.org/wiki/SHA-1) and [SH
 - Project page: <https://cgen.sophisticatedways.net>.
 - Source code is published under [MIT license](https://github.com/vsklad/cgen/blob/master/LICENSE).
 - Source code is available on GitHub: <https://github.com/vsklad/cgen>.
+
 [![Build Status](https://travis-ci.org/vsklad/cgen.svg?branch=master)](https://travis-ci.org/vsklad/cgen)
 
 ## Description
