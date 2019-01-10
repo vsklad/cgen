@@ -265,7 +265,7 @@ CGen outputs an encoding in the below text format when ANF is chosen for output.
     - the tool will never output the same term twice within the same equation, duplicates are optimized out
 
 ## Acknowledgements & References
-In many respects, CGen is an evolution of work done by earlier researchers. Below is the list of publications and tools used during CGen development.
+In many respects, CGen is an evolution of work done by other researchers. Below is the list of publications and tools used during CGen development.
 
 1. Johanovic et al, 2005, <http://csl.sri.com/users/dejan/papers/jovanovic-hashsat-2005.pdf>
 2. [Marjin Heule](http://www.cs.utexas.edu/users/marijn/), 2008, <https://repository.tudelft.nl/islandora/object/uuid%3Ad41522e3-690a-4eb7-a352-652d39d7ac81>
@@ -277,6 +277,8 @@ In many respects, CGen is an evolution of work done by earlier researchers. Belo
 8. [Mate Soos](https://www.msoos.org) blog, <https://www.msoos.org>
 9. [SHA1-SAT](https://github.com/vegard/sha1-sat) by Vegard Nossum
 10. [Espresso Logic Minimizer](https://en.wikipedia.org/wiki/Espresso_heuristic_logic_minimizer) by Robert Brayton
+
+ANF representation has been inroduced thanks to and based on advice received from [Mate Soos](https://github.com/msoos). Authors of [Bosphorus](https://github.com/meelgroup/bosphorus) used the resulting SHA-256 ANF encoding as one of benchmarks discussed in their [paper](https://www.comp.nus.edu.sg/~meel/Papers/date-cscm19.pdf).
 
 CGen does not reuse any pre-existing source code.
 
