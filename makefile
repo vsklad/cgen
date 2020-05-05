@@ -1,27 +1,66 @@
 #
 #  CGen makefile
 #  https://cgen.sophisticatedways.net
-#  Copyright © 2018 Volodymyr Skladanivskyy. All rights reserved.
+#  Copyright © 2018-2020 Volodymyr Skladanivskyy. All rights reserved.
 #  Published under terms of MIT license.
 #
 
-PATH_ACL = ./acl
-PATH_PLE_BASE = ./ple/base
-PATH_PLE_IO = ./ple/io
-PATH_PLE_VARIABLES = ./ple/variables
-PATH_PLE_LIBRARY = ./ple/library
-PATH_PLE_ANF = ./ple/anf
-PATH_PLE_CNF = ./ple/cnf
-
 BIN_NAME = cgen
-CPLUS_FLAGS = -I. -I$(PATH_ACL) -I$(PATH_PLE_BASE) -I$(PATH_PLE_IO) -I$(PATH_PLE_VARIABLES) -I$(PATH_PLE_LIBRARY) -I$(PATH_PLE_ANF) -I$(PATH_PLE_CNF) -std=c++11
+BIN_NAME_OPTIMIZED = cgeno
 
-all:
-	g++ $(CPLUS_FLAGS) -c *.cpp
-	g++ $(CPLUS_FLAGS) -c $(PATH_PLE_VARIABLES)/*.cpp
-	g++ $(CPLUS_FLAGS) -c $(PATH_PLE_LIBRARY)/*.cpp
-	g++ $(CPLUS_FLAGS) -c $(PATH_PLE_ANF)/*.cpp
-	g++ *.o -o ${BIN_NAME}
+CXX = g++
+CXX_FLAGS = -I. -std=c++11
+
+PATH_ACL = ./acl
+CXX_FLAGS += -I$(PATH_ACL)
+PATH_BAL_ANF = ./bal/anf
+CXX_FLAGS += -I$(PATH_BAL_ANF)
+PATH_BAL_BAL = ./bal/bal
+CXX_FLAGS += -I$(PATH_BAL_BAL)
+PATH_BAL_CNF_CNF = ./bal/cnf/cnf
+CXX_FLAGS += -I$(PATH_BAL_CNF_CNF)
+PATH_BAL_CNF_IO = ./bal/cnf/io
+CXX_FLAGS += -I$(PATH_BAL_CNF_IO)
+PATH_BAL_CNF_ENCODING = ./bal/cnf/encoding
+CXX_FLAGS += -I$(PATH_BAL_CNF_ENCODING)
+PATH_BAL_CNF_PROCESSOR = ./bal/cnf/processor
+CXX_FLAGS += -I$(PATH_BAL_CNF_PROCESSOR)
+PATH_BAL_CNF_TRACER = ./bal/cnf/tracer
+CXX_FLAGS += -I$(PATH_BAL_CNF_TRACER)
+PATH_BAL_ENCODING = ./bal/encoding
+CXX_FLAGS += -I$(PATH_BAL_ENCODING)
+PATH_BAL_FORMULA = ./bal/formula
+CXX_FLAGS += -I$(PATH_BAL_FORMULA)
+PATH_BAL_IO = ./bal/io
+CXX_FLAGS += -I$(PATH_BAL_IO)
+PATH_BAL_VARIABLES = ./bal/variables
+CXX_FLAGS += -I$(PATH_BAL_VARIABLES)
+PATH_BAL_UTILS = ./bal/utils
+CXX_FLAGS += -I$(PATH_BAL_UTILS)
+
+all: cgen cgen_optimized
+
+cgen:
+	$(CXX) $(CXX_FLAGS) -DCNF_TRACE -c *.cpp
+	$(CXX) $(CXX_FLAGS) -DCNF_TRACE -c $(PATH_BAL_ANF)/*.cpp
+	$(CXX) $(CXX_FLAGS) -DCNF_TRACE -c $(PATH_BAL_CNF_CNF)/*.cpp
+	$(CXX) $(CXX_FLAGS) -DCNF_TRACE -c $(PATH_BAL_CNF_ENCODING)/*.cpp
+	$(CXX) $(CXX_FLAGS) -DCNF_TRACE -c $(PATH_BAL_CNF_PROCESSOR)/*.cpp
+	$(CXX) $(CXX_FLAGS) -DCNF_TRACE -c $(PATH_BAL_FORMULA)/*.cpp
+	$(CXX) $(CXX_FLAGS) -DCNF_TRACE -c $(PATH_BAL_VARIABLES)/*.cpp
+	$(CXX) *.o -o ${BIN_NAME}
+	
+cgen_optimized:
+	$(CXX) $(CXX_FLAGS) -c *.cpp
+	$(CXX) $(CXX_FLAGS) -c $(PATH_BAL_ANF)/*.cpp
+	$(CXX) $(CXX_FLAGS) -c $(PATH_BAL_CNF_CNF)/*.cpp
+	$(CXX) $(CXX_FLAGS) -c $(PATH_BAL_CNF_ENCODING)/*.cpp
+	$(CXX) $(CXX_FLAGS) -c $(PATH_BAL_CNF_PROCESSOR)/*.cpp
+	$(CXX) $(CXX_FLAGS) -c $(PATH_BAL_FORMULA)/*.cpp
+	$(CXX) $(CXX_FLAGS) -c $(PATH_BAL_VARIABLES)/*.cpp
+	$(CXX) *.o -o ${BIN_NAME_OPTIMIZED}
+
 clean:
 	rm -rf *.o
-	rm ${BIN_NAME}
+	rm -f ${BIN_NAME}
+	rm -f ${BIN_NAME_OPTIMIZED}

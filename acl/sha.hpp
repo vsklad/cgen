@@ -1,36 +1,38 @@
 //
 //  Algebraic Cryptanalysis Library (ACL)
 //  https://cgen.sophisticatedways.net
-//  Copyright © 2018 Volodymyr Skladanivskyy. All rights reserved.
+//  Copyright © 2018-2020 Volodymyr Skladanivskyy. All rights reserved.
 //  Published under terms of MIT license.
 //
 
 #ifndef sha_hpp
 #define sha_hpp
 
-#include "word.hpp"
+#include <stdexcept>
+#include "gf2n.hpp"
+#include "assertlevels.hpp"
 
 #define _min(value1, value2) (value1 < value2 ? value1 : value2)
 
 namespace acl {
     
-    using namespace ple;
+    using namespace bal;
     
     // prototype for a class implementing one of
     // the SHA family of hash functions
-    template <WordSize WORD_SIZE_, uint32_t MESSAGE_BLOCK_SIZE_, class BIT>
+    template <std::size_t WORD_SIZE_, uint32_t MESSAGE_BLOCK_SIZE_, class BIT>
     class SHA {
     public:
         using Bit = BIT;
-        using Word = ple::Word<WORD_SIZE_, BIT>;
+        using Word = bal::GF2NElement<WORD_SIZE_, BIT>;
         
-        static const constexpr WordSize WORD_SIZE = WORD_SIZE_;
-        static const constexpr uint32_t MESSAGE_BLOCK_SIZE = MESSAGE_BLOCK_SIZE_;
+        static constexpr std::size_t WORD_SIZE = WORD_SIZE_;
+        static constexpr uint32_t MESSAGE_BLOCK_SIZE = MESSAGE_BLOCK_SIZE_;
         
     public:
         // support 1 block only
         static VariablesArray pad_message(const literalid_t* const message, const variableid_t message_size) {
-            const constexpr auto padded_size = MESSAGE_BLOCK_SIZE * WORD_SIZE;
+            constexpr auto padded_size = MESSAGE_BLOCK_SIZE * WORD_SIZE;
             assert(padded_size >= 512);
             
             if (message_size == 0 || (message_size >> 3) > 55) {
@@ -56,6 +58,6 @@ namespace acl {
             return padded_message;
         };
     };
-}
+};
 
 #endif /* sha_hpp */
