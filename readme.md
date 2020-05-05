@@ -5,7 +5,7 @@ CGen is a tool for encoding [SHA-1](https://en.wikipedia.org/wiki/SHA-1) and [SH
 - Source code is published under [MIT license](https://github.com/vsklad/cgen/blob/master/LICENSE).
 - Source code is available on GitHub: <https://github.com/vsklad/cgen>.
 
-The current published version is 1.2. See [Change Log](#change-log) for the list of changes.
+The current published version is 1.2. See [Change Log](#change-log) for details.
 
 [![Build Status](https://travis-ci.org/vsklad/cgen.svg?branch=master)](https://travis-ci.org/vsklad/cgen)
 
@@ -411,7 +411,7 @@ Key changes:
 - Graph output suported essentially incorporating CGraph functionality.
 - Can produce detailed trace of all simplification actions/steps while processing the formula (-t option).
 ### Version 1.1
-- Original version pblished in 2018
+- Original version published in 2018
 
 ## About
 I developed CGen part of hobby research into SAT and cryptography.
