@@ -2,6 +2,7 @@
 CGen is a tool for encoding [SHA-1](https://en.wikipedia.org/wiki/SHA-1) and [SHA-256](https://en.wikipedia.org/wiki/SHA-2) hash functions into [CNF](https://en.wikipedia.org/wiki/Conjunctive_normal_form) in [DIMACS](http://www.satcompetition.org/2009/format-benchmarks2009.html) format, also into [ANF](https://en.wikipedia.org/wiki/Algebraic_normal_form) polynominal system in [PolyBoRi](http://polybori.sourceforge.net) output format. The tool produces compact optimized encodings. The tool allows manipulating CNF encodings further via assignment of variable values and subsequent optimization.
 
 - Project page: <https://cgen.sophisticatedways.net>.
+- Article: <https://blog.sophisticatedways.net/2020/10/tailored-compact-cnf-encoding-for-sha-1.html>.
 - Source code is published under [MIT license](https://github.com/vsklad/cgen/blob/master/LICENSE).
 - Source code is available on GitHub: <https://github.com/vsklad/cgen>.
 
