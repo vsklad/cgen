@@ -151,7 +151,10 @@ namespace bal {
     private:
         variableid_t next_ = VARIABLEID_MIN;
     protected:
-        inline void reset(const variableid_t start_value) { next_ = start_value; };
+        inline void reset(const variableid_t start_value) {
+            _assert_level_0(start_value < VARIABLEID_MAX);
+            next_ = start_value;
+        };
         inline variableid_t next() const { return next_; };
     public:
         virtual variableid_t new_variable() { return next_++; };
