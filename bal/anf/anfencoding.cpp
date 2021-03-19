@@ -63,13 +63,19 @@ namespace bal {
         formula->complete_equation(r, literal_t__is_unassigned(r));
     };
     
-    // x + y + x_prev + y_prev + x_prev * y_prev + x_prev * r_prev + y_prev * r_prev
-    // see Word<Literal<Anf>> add2()
-    // assume all parameters are variables
+    // see __add2()
     void add2(Anf* const formula, const literalid_t r, const literalid_t x, const literalid_t y,
               const literalid_t r_prev, const literalid_t x_prev, const literalid_t y_prev) {
         _assert_level_0(formula != nullptr);
         _assert_level_0(literal_t__is_variable(r) || literal_t__is_unassigned(r));
+        __add2(formula, r, x, y, r_prev, x_prev, y_prev);
+    };
+
+    // x + y + x_prev + y_prev + x_prev * y_prev + x_prev * r_prev + y_prev * r_prev
+    // see Ref<GF2NElement<N, Literal<Anf>>> add2()
+    literalid_t __add2(Anf* const formula, const literalid_t r, const literalid_t x, const literalid_t y,
+                       const literalid_t r_prev, const literalid_t x_prev, const literalid_t y_prev) {
+        _assert_level_0(formula != nullptr);
         formula->append_equation();
         formula->append_equation_term(x);
         formula->append_equation_term(y);
@@ -78,6 +84,6 @@ namespace bal {
         formula->append_equation_term(x_prev, y_prev);
         formula->append_equation_term(x_prev, r_prev);
         formula->append_equation_term(y_prev, r_prev);
-        formula->complete_equation(r, literal_t__is_unassigned(r));
+        return formula->complete_equation(r, literal_t__is_unassigned(r));
     };
 };

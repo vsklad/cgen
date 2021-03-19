@@ -24,6 +24,8 @@ namespace bal {
     
     void add2(Anf* const formula, const literalid_t r, const literalid_t x, const literalid_t y,
               const literalid_t r_prev, const literalid_t x_prev, const literalid_t y_prev);
+    literalid_t __add2(Anf* const formula, const literalid_t r, const literalid_t x, const literalid_t y,
+                       const literalid_t r_prev, const literalid_t x_prev, const literalid_t y_prev);
     
     //  Elimination of carry variables
     //
@@ -55,86 +57,26 @@ namespace bal {
         update_formula(formula, (*y)[0]);
         
         for (auto i = 1; i < N; i++) {
-            literalid_t r_i;
             const literalid_t x_i = (*x)[i]->value;
             const literalid_t y_i = (*y)[i]->value;
             update_formula(formula, (*x)[i]);
             update_formula(formula, (*y)[i]);
             
-            // attempt to compute result
-            // if it is expressed as a single literal then there is no need for expressions
-            // x_i + y_i + x_p + y_p + x_p * y_p + x_p * r_p + y_p * r_p
-            bool b_calculated = false;
-            r_i = x_i;
-            if (literal_t__is_constant(r_i) || literal_t__is_constant(y_i) || literal_t__is_same_variable(r_i, y_i)) {
-                r_i ^= y_i;
-                if (literal_t__is_constant(r_i) || literal_t__is_constant(x_p) || literal_t__is_same_variable(r_i, x_p)) {
-                    r_i ^= x_p;
-                    if (literal_t__is_constant(r_i) || literal_t__is_constant(y_p) || literal_t__is_same_variable(r_i, y_p)) {
-                        r_i ^= y_p;
-                        literalid_t r_exp;
-                        if (literal_t__is_constant_0(x_p) || literal_t__is_constant_0(y_p) || literal_t__is_negation_of(x_p, y_p)) {
-                            r_exp = LITERAL_CONST_0;
-                        } else if (literal_t__is_constant_1(y_p) || literal_t__is_same_variable(x_p, y_p)) {
-                            r_exp = x_p;
-                        } else if (literal_t__is_constant_1(x_p)) {
-                            r_exp = y_p;
-                        } else {
-                            r_exp = LITERALID_UNASSIGNED;
-                        };
-                        
-                        if (!literal_t__is_unassigned(r_exp) &&
-                            (literal_t__is_constant(r_i) || literal_t__is_constant(r_exp) || literal_t__is_same_variable(r_i, r_exp))) {
-                            r_i ^= r_exp;
-                            
-                            if (literal_t__is_constant_0(x_p) || literal_t__is_constant_0(r_p) || literal_t__is_negation_of(x_p, r_p)) {
-                                r_exp = LITERAL_CONST_0;
-                            } else if (literal_t__is_constant_1(r_p) || literal_t__is_same_variable(x_p, r_p)) {
-                                r_exp = x_p;
-                            } else if (literal_t__is_constant_1(x_p)) {
-                                r_exp = r_p;
-                            } else {
-                                r_exp = LITERALID_UNASSIGNED;
-                            };
-                            
-                            if (!literal_t__is_unassigned(r_exp) &&
-                                (literal_t__is_constant(r_i) || literal_t__is_constant(r_exp) || literal_t__is_same_variable(r_i, r_exp))) {
-                                r_i ^= r_exp;
-
-                                if (literal_t__is_constant_0(y_p) || literal_t__is_constant_0(r_p) || literal_t__is_negation_of(y_p, r_p)) {
-                                    r_exp = LITERAL_CONST_0;
-                                } else if (literal_t__is_constant_1(r_p) || literal_t__is_same_variable(y_p, r_p)) {
-                                    r_exp = y_p;
-                                } else if (literal_t__is_constant_1(y_p)) {
-                                    r_exp = r_p;
-                                } else {
-                                    r_exp = LITERALID_UNASSIGNED;
-                                };
-                                
-                                if (!literal_t__is_unassigned(r_exp) &&
-                                    (literal_t__is_constant(r_i) || literal_t__is_constant(r_exp) || literal_t__is_same_variable(r_i, r_exp))) {
-                                    r_i ^= r_exp;
-                                    b_calculated = true;
-                                };
-                            };
-                        };
-                    };
-                };
-            };
-                
-            if (b_calculated) {
-                _assert_level_1(!literal_t__is_unassigned(r_i));
-                (*result)[i] = Literal<Anf>::from_literal(formula, r_i);
+            // formula instance is undefined when all operands are constant
+            // but the result can be easily calculated and no extra variables required
+            if (literal_t__is_constant(x_i) && literal_t__is_constant(y_i) &&
+                literal_t__is_constant(r_p) && literal_t__is_constant(x_p) && literal_t__is_constant(y_p)) {
+                r_p = x_i ^ y_i ^ x_p ^ y_p ^ (x_p & y_p) ^ (x_p & r_p) ^ (y_p & r_p);
+                _assert_level_2(literal_t__is_constant(r_p));
             } else {
-                _assert_level_1(formula != nullptr);
-                r_i = formula->new_variable_literal();
-                add2(formula, r_i, x_i, y_i, r_p, x_p, y_p);
-                (*result)[i] = new Literal<Anf>(formula, r_i);
+                r_p = __add2(formula, LITERALID_UNASSIGNED, x_i, y_i, r_p, x_p, y_p);
+                _assert_level_2(literal_t__is_constant(r_p) || literal_t__is_variable(r_p));
             };
+            
+            (*result)[i] = Literal<Anf>::from_literal(formula, r_p);
             
             x_p = x_i;
             y_p = y_i;
-            r_p = r_i;
         };
         
         return result;
