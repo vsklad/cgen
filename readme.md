@@ -387,7 +387,7 @@ CGen outputs an encoding in the below text format when ANF is chosen for output.
 ## Acknowledgements & References
 In many respects, CGen is an evolution of work done by other researchers. Below is the list of publications and tools used during CGen development.
 
-1. Johanovic et al, 2005, <http://csl.sri.com/users/dejan/papers/jovanovic-hashsat-2005.pdf>
+1. Jovanovic et al, 2005, <http://csl.sri.com/users/dejan/papers/jovanovic-hashsat-2005.pdf>
 2. [Marjin Heule](http://www.cs.utexas.edu/users/marijn/), 2008, <https://repository.tudelft.nl/islandora/object/uuid%3Ad41522e3-690a-4eb7-a352-652d39d7ac81>
 3. Norbert Manthey, 2011, <https://www.researchgate.net/publication/51934532_Coprocessor_-_a_Standalone_SAT_Preprocessor>
 4. [Vegard Nossum](https://github.com/vegard), 2012, <https://www.duo.uio.no/handle/10852/34912>
