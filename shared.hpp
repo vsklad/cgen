@@ -1,7 +1,7 @@
 //
 //  CGen
 //  https://cgen.sophisticatedways.net
-//  Copyright © 2018-2020 Volodymyr Skladanivskyy. All rights reserved.
+//  Copyright © 2018-2023 Volodymyr Skladanivskyy. All rights reserved.
 //  Published under terms of MIT license.
 //
 
@@ -12,7 +12,7 @@
 #include <vector>
 #include "variablesarray.hpp"
 
-#define APP_VERSION "1.2"
+#define APP_VERSION "1.2.1"
 #define APP_TITLE "CGen"
 #define APP_URL "https://cgen.sophisticatedways.net"
 #define APP_DESCRIPTION "CGen is a tool for encoding SHA-1 and SHA-256 hash functions into CNF/DIMACS and ANF/PolyBoRi formats"
@@ -117,7 +117,7 @@ enum CGenTraceFormat {tfNone, tfNativeStdOut, tfNativeFile, tfCnfVIGGEXF};
 enum CGenVariableMode {vmValue, vmRandom, vmCompute};
 enum CGenVariableComputeMode {vcmComplete, vcmDifference, vcmConstant};
 
-typedef struct {
+typedef struct CGenVariableInfo {
     CGenVariableMode mode;
     CGenVariableComputeMode compute_mode = vcmDifference;
     uint32_t except_count = 0;

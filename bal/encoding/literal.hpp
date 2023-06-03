@@ -1,7 +1,7 @@
 //
 //  Boolean Algebra Library (BAL)
 //  https://cgen.sophisticatedways.net
-//  Copyright © 2018-2020 Volodymyr Skladanivskyy. All rights reserved.
+//  Copyright © 2018-2023 Volodymyr Skladanivskyy. All rights reserved.
 //  Published under terms of MIT license.
 //
 
@@ -403,6 +403,22 @@ namespace bal {
         _assert_level_0(LHS_SIZE * N == rhs.size());
         const literalid_t* literals = rhs.data();
         for (auto i = 0; i < LHS_SIZE; i++) {
+            lhs[i] = new GF2NElement<N, GF2E>();
+            for (auto j = 0; j < N; j++) {
+                (*lhs[i])[j] = GF2E::from_literal(&formula, literals[N - 1 - j]);
+            };
+            literals += N;
+        };
+    };
+
+    // note the assignment of bits in reverse order
+    template<std::size_t N, class GF2E,
+            typename std::enable_if<std::is_base_of<Literal<typename GF2E::Formula>, GF2E>::value, int>::type = 0>
+    inline void assign(Ref<GF2NElement<N, GF2E>> *lhs, const size_t lhs_size,
+                       typename GF2E::Formula& formula, const VariablesArray& rhs) {
+        _assert_level_0(lhs_size * N == rhs.size());
+        const literalid_t* literals = rhs.data();
+        for (auto i = 0; i < lhs_size; i++) {
             lhs[i] = new GF2NElement<N, GF2E>();
             for (auto j = 0; j < N; j++) {
                 (*lhs[i])[j] = GF2E::from_literal(&formula, literals[N - 1 - j]);

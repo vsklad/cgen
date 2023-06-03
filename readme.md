@@ -2,7 +2,6 @@
 CGen is a tool for encoding [SHA-1](https://en.wikipedia.org/wiki/SHA-1) and [SHA-256](https://en.wikipedia.org/wiki/SHA-2) hash functions into [CNF](https://en.wikipedia.org/wiki/Conjunctive_normal_form) in [DIMACS](http://www.satcompetition.org/2009/format-benchmarks2009.html) format, also into [ANF](https://en.wikipedia.org/wiki/Algebraic_normal_form) polynominal system in [PolyBoRi](http://polybori.sourceforge.net) output format. The tool produces compact optimized encodings. The tool allows manipulating CNF encodings further via assignment of variable values and subsequent optimization.
 
 - Project page: <https://cgen.sophisticatedways.net>.
-- Article: <https://blog.sophisticatedways.net/2020/10/tailored-compact-cnf-encoding-for-sha-1.html>.
 - Source code is published under [MIT license](https://github.com/vsklad/cgen/blob/master/LICENSE).
 - Source code is available on GitHub: <https://github.com/vsklad/cgen>.
 
@@ -294,11 +293,12 @@ The tool supports the following parameters:
 ### Pre-defined Variables
 Two variables are pre-defined for both SHA-1 and SHA-256.
         
-        M - message, a sequence of up to 55 bytes (440 bits) due to self-imposed 1 block limitation
-            ASCII/hexadecimal constant is padded according to SHA1 specification
-            note: random assignments are not padded
-            the value is used for encoding, i.e.
-            the formula is produced for the specified value originally, with maximal optimization
+        M - message, a sequence of bits (bytes, words), size must be a multiple of 512 (the block size)
+            any size is acceptable with padding specified (see <pad>)
+            ASCII/hexadecimal constants or more complex templates can be used to specify the value and/or its size
+            single block encoding assumes up to 448 bits with padding or 512 bits exact without padding
+            the message value is used for encoding,
+            i.e. the formula is produced for the specified value originally, with maximal optimization
         H - hash value, a set of 160 bits for SHA-1 grouped into 5 32-bit words, 
             256 bits and 8 words for SHA-256 respectively
             the value is assigned afterwards with recursive UP and euqivalences optimizations
@@ -387,7 +387,7 @@ CGen outputs an encoding in the below text format when ANF is chosen for output.
 ## Acknowledgements & References
 In many respects, CGen is an evolution of work done by other researchers. Below is the list of publications and tools used during CGen development.
 
-1. Jovanovic et al, 2005, <http://csl.sri.com/users/dejan/papers/jovanovic-hashsat-2005.pdf>
+1. Johanovic et al, 2005, <http://csl.sri.com/users/dejan/papers/jovanovic-hashsat-2005.pdf>
 2. [Marjin Heule](http://www.cs.utexas.edu/users/marijn/), 2008, <https://repository.tudelft.nl/islandora/object/uuid%3Ad41522e3-690a-4eb7-a352-652d39d7ac81>
 3. Norbert Manthey, 2011, <https://www.researchgate.net/publication/51934532_Coprocessor_-_a_Standalone_SAT_Preprocessor>
 4. [Vegard Nossum](https://github.com/vegard), 2012, <https://www.duo.uio.no/handle/10852/34912>
@@ -403,9 +403,13 @@ ANF representation has been inroduced thanks to and based on advice received fro
 CGen does not reuse any pre-existing source code.
 
 ## Change Log
+### Version 1.2.1
+Supports encoding of messages larger than 1 block.
+Size of the message can be specified using parameters, see "Pre-defined Variables".
+
 ### Version 1.2
-Version 1.2 includes a set of incremental improvements. The encoded raw CNF formula is unchanged.
-Key changes:
+Version 1.2 includes a set of incremental improvements. The encoded raw CNF formula is unchanged. Key changes:
+
 - Various options added for specifying variables values / constraints (e.g. SHA message and hash values). 
 - Variable assignments supported for ANF.
 - Optional CNF simplification expanded (e.g. to elimilate subsumed clauses). 

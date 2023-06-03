@@ -1,7 +1,7 @@
 //
 //  CGen
 //  https://cgen.sophisticatedways.net
-//  Copyright © 2018-2020 Volodymyr Skladanivskyy. All rights reserved.
+//  Copyright © 2018-2023 Volodymyr Skladanivskyy. All rights reserved.
 //  Published under terms of MIT license.
 //
 
@@ -13,7 +13,7 @@
 #include "variablesio.hpp"
 #include "cnf.hpp"
 
-typedef struct {
+typedef struct CGenCommandInfo {
     CGenCommand command = cmdNone;
     CGenAlgorithm algorithm = algNone;
     CGenFormulaType formula_type = ftCnf;

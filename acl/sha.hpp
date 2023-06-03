@@ -1,7 +1,7 @@
 //
 //  Algebraic Cryptanalysis Library (ACL)
 //  https://cgen.sophisticatedways.net
-//  Copyright © 2018-2020 Volodymyr Skladanivskyy. All rights reserved.
+//  Copyright © 2018-2023 Volodymyr Skladanivskyy. All rights reserved.
 //  Published under terms of MIT license.
 //
 
@@ -30,28 +30,32 @@ namespace acl {
         static constexpr uint32_t MESSAGE_BLOCK_SIZE = MESSAGE_BLOCK_SIZE_;
         
     public:
-        // support 1 block only
-        static VariablesArray pad_message(const literalid_t* const message, const variableid_t message_size) {
-            constexpr auto padded_size = MESSAGE_BLOCK_SIZE * WORD_SIZE;
-            assert(padded_size >= 512);
-            
-            if (message_size == 0 || (message_size >> 3) > 55) {
-                throw std::invalid_argument("Message must be between 1 and 55 bytes long");
+        // assume the padded message can be represented as a sequence of words
+        // i.e. the number of bits in the padded message is a multiple of word size
+        // this is done for simplicity of representation as a sequence of hexadecimal constants
+        //   more than any other reason
+        static VariablesArray pad_message(const literalid_t* const message, const variables_size_t message_size) {
+            constexpr auto block_bits_size = MESSAGE_BLOCK_SIZE * WORD_SIZE;
+            variables_size_t number_of_blocks = message_size / block_bits_size + 1;
+            if ((message_size % block_bits_size) > 447) {
+                number_of_blocks++;
             };
             
-            VariablesArray padded_message(MESSAGE_BLOCK_SIZE, WORD_SIZE);
+            const variables_size_t padded_words_size = number_of_blocks * MESSAGE_BLOCK_SIZE;
+            const variables_size_t padded_bits_size = padded_words_size * WORD_SIZE;
+            VariablesArray padded_message(padded_words_size, WORD_SIZE);
             literalid_t* data = padded_message.data();
 
             // copy the message
             std::copy(message, message + message_size, data);
             // append 1 bit
             data[message_size] = literal_t__constant(1);
-            // append the rest with zeros except the last two bytes
-            std::fill(data + message_size + 1, data + padded_size - 16, literal_t__constant(0));
-            // the last 16 bits is the message size in bits
-            uint16_t message_size_ = message_size;
-            for (auto i = 0; i < 16; i++) {
-                data[padded_size - i - 1] = message_size_ & 1;
+            // append the rest with zeros except for the last 64 bits
+            std::fill(data + message_size + 1, data + padded_bits_size - 64, literal_t__constant(0));
+            // the last 64 bits is the message size in bits
+            uint64_t message_size_ = message_size;
+            for (auto i = 0; i < 64; i++) {
+                data[padded_bits_size - i - 1] = message_size_ & 1;
                 message_size_ >>= 1;
             };
 

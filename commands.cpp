@@ -1,7 +1,7 @@
 //
 //  CGen
 //  https://cgen.sophisticatedways.net
-//  Copyright © 2018-2020 Volodymyr Skladanivskyy. All rights reserved.
+//  Copyright © 2018-2023 Volodymyr Skladanivskyy. All rights reserved.
 //  Published under terms of MIT license.
 //
 
@@ -483,6 +483,7 @@ void encode_impl(typename SHA::Bit::Formula& formula, const uint32_t rounds,
     formula.add_parameter("encoder", "algorithm", SHA::NAME);
     formula.add_parameter("encoder", "rounds", rounds);
  
+    // assume 1 block but expand if necessary
     bal::VariablesArray M_array(SHA::MESSAGE_BLOCK_SIZE, SHA::WORD_SIZE);
     M_array.assign_unassigned();
     
@@ -493,20 +494,38 @@ void encode_impl(typename SHA::Bit::Formula& formula, const uint32_t rounds,
             throw std::invalid_argument(ERROR_COMPUTE_MESSAGE_NOT_SUPPORTED);
         } else if (M_it->second.mode == vmRandom) {
             variable_define_random(M_it->second, M_array);
+        } else {
+            _assert_level_0(M_it->second.mode == vmValue);
+            // check that the message size is a multiple of the block size
+            constexpr auto MESSAGE_BLOCK_SIZE_BITS = SHA::MESSAGE_BLOCK_SIZE * SHA::WORD_SIZE;
+            if ((M_it->second.data.size() % MESSAGE_BLOCK_SIZE_BITS) != 0) {
+                std::stringstream error_message;
+                error_message << "Message (M) size must be a multiple of the block size ";
+                error_message << std::dec << "(" << MESSAGE_BLOCK_SIZE_BITS << ")";
+                throw std::invalid_argument(error_message.str());
+            } else if (M_it->second.data.size() > MESSAGE_BLOCK_SIZE_BITS) {
+                // expand the message template
+                M_array = bal::VariablesArray(M_it->second.data.size() / SHA::WORD_SIZE, SHA::WORD_SIZE);
+                M_array.assign_unassigned();
+            };
         };
         M_array = variable_generate_value(formula, "M", M_it->second, M_array, true, true);
     };
     
     SHA sha;
     
-    bal::Ref<typename SHA::Word> M[SHA::MESSAGE_BLOCK_SIZE];
+    const std::size_t M_size = M_array.size() / SHA::WORD_SIZE;
+    formula.add_parameter("encoder", "message_blocks", M_size / SHA::MESSAGE_BLOCK_SIZE);
+    
+    bal::Ref<typename SHA::Word> M[M_size];
     bal::Ref<typename SHA::Word> H[SHA::HASH_SIZE];
     
     formula.generate_unassigned_variable_literals(M_array.data(), M_array.size());
-    assign(M, formula, M_array);
+
+    assign(M, M_size, formula, M_array);
     
     bal::FormulaTracer<SHA::WORD_SIZE, typename SHA::Bit> tracer(formula);
-    sha.execute(M, H, tracer, rounds);
+    sha.execute(M, M_size, H, tracer, rounds);
     
     bool is_valid = true;
     
